@@ -448,10 +448,15 @@ export const DriverDashboard: React.FC = () => {
     const nextStatus = getNextStatus(status);
     
     // CRITICAL: For "ON THE WAY" status, only the owner can interact
+    
+    // CRITICAL: For "ON THE WAY" status, only the owner can interact
     const canUpdate = notStarted || (isOwner && !(status === 'ON THE WAY' && !isOwner));
     const isComplete = status === 'COMPLETE';
     const canUndo = isOwner && !isComplete && status !== 'pending' && status !== 'Pending';
     const isAboutToComplete = nextStatus === 'COMPLETE';
+    
+    // Check if delivery is "ON THE WAY" by another driver
+    const isOnTheWayByOther = status === 'ON THE WAY' && isOwnedByAnotherDriver;
     
     // Check if delivery is "ON THE WAY" by another driver
     const isOnTheWayByOther = status === 'ON THE WAY' && isOwnedByAnotherDriver;
@@ -496,7 +501,9 @@ export const DriverDashboard: React.FC = () => {
           <button
             disabled
             className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
-            title="This delivery is currently in progress by another driver and cannot be edited"
+            title={status === 'ON THE WAY' ? 
+              "This delivery is currently in progress by another driver and cannot be edited" : 
+              `This delivery is being handled by ${ownerInfo}`}
           >
             🚫 {status === 'ON THE WAY' ? 'IN PROGRESS BY' : 'DRIVER'}: {ownerInfo?.split('@')[0]?.toUpperCase() || 'OTHER'}
           </button>
