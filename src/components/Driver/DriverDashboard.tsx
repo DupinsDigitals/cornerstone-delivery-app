@@ -340,6 +340,12 @@ export const DriverDashboard: React.FC = () => {
 
     // Special check for "ON THE WAY" status - only the driver who claimed it can complete it
     if (delivery.status === 'ON THE WAY' && delivery.startedBy && delivery.startedBy !== user?.email) {
+      alert('This delivery is currently in progress by another driver and cannot be edited.');
+      return;
+    }
+
+    // Special check for "ON THE WAY" status - only the driver who claimed it can complete it
+    if (delivery.status === 'ON THE WAY' && delivery.startedBy && delivery.startedBy !== user?.email) {
       alert('This delivery is already in progress by another driver.');
       return;
     }
@@ -354,6 +360,11 @@ export const DriverDashboard: React.FC = () => {
       // Double-check ownership before showing photo modal
       if (delivery.startedBy && delivery.startedBy !== user?.email) {
         alert('This delivery is already in progress by another driver.');
+        return;
+      }
+      // Double-check ownership before showing photo modal
+      if (delivery.startedBy && delivery.startedBy !== user?.email) {
+        alert('This delivery is currently in progress by another driver and cannot be edited.');
         return;
       }
       showPhotoUploadModal(delivery.id, delivery.clientName);
