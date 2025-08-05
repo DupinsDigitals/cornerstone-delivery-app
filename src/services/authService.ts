@@ -224,5 +224,5 @@ export const canViewDeliveries = (user: User | null): boolean => {
 };
 
 export const canAccessDriverDashboard = (user: User | null): boolean => {
-  return hasRole(user, ['driver']);
+  return hasRole(user, ['driver', 'masterDriver']);
 };

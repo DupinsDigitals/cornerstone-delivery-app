@@ -126,6 +126,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onUserUpdated, curren
       case 'master': return 'Master User';
       case 'salesRep': return 'Sales Rep';
       case 'driver': return 'Driver';
+      case 'masterDriver': return 'Master Driver';
       case 'unknown': return 'Unknown Role';
       default: return role;
     }
@@ -136,6 +137,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onUserUpdated, curren
       case 'master': return 'bg-purple-100 text-purple-800';
       case 'salesRep': return 'bg-blue-100 text-blue-800';
       case 'driver': return 'bg-green-100 text-green-800';
+      case 'masterDriver': return 'bg-orange-100 text-orange-800';
       case 'unknown': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -182,6 +184,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onUserUpdated, curren
               <option value="master">Master Users</option>
               <option value="salesRep">Sales Reps</option>
               <option value="driver">Drivers</option>
+              <option value="masterDriver">Master Drivers</option>
             </select>
           </div>
         </div>

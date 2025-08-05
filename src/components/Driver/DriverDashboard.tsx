@@ -14,6 +14,7 @@ export const DriverDashboard: React.FC = () => {
   const [expandedDeliveryId, setExpandedDeliveryId] = useState<string | null>(null);
   const [updatingDelivery, setUpdatingDelivery] = useState<string | null>(null);
   const [lockedDeliveries, setLockedDeliveries] = useState<Set<string>>(new Set());
+  const [selectedStore, setSelectedStore] = useState<'Framingham' | 'Marlborough'>('Framingham');
 
   // Photo upload modal state
   const [photoModalState, setPhotoModalState] = useState<{
@@ -102,16 +103,21 @@ export const DriverDashboard: React.FC = () => {
     return today.toISOString().split('T')[0];
   };
 
+  // Check if user is a Master Driver (read-only access)
+  const isMasterDriver = user?.role === 'masterDriver';
   const loadTodaysDeliveries = async () => {
-    if (!user?.assignedStore) {
-      console.error('Driver has no assigned store');
+    // For Master Driver, use selected store; for regular driver, use assigned store
+    const storeToLoad = isMasterDriver ? selectedStore : user?.assignedStore;
+    
+    if (!storeToLoad) {
+      console.error('No store specified for loading deliveries');
       setIsLoading(false);
       return;
     }
 
     try {
       const todayDate = getTodayDate();
-      const result = await getTodaysDeliveriesForStore(user.assignedStore, todayDate);
+      const result = await getTodaysDeliveriesForStore(storeToLoad, todayDate);
       
       if (result.success && result.deliveries) {
         // Show all deliveries for the store - drivers can work with any truck
@@ -137,7 +143,7 @@ export const DriverDashboard: React.FC = () => {
         });
         
         setDeliveries(sortedDeliveries);
-        console.log(`📱 Driver Dashboard - Loaded ${sortedDeliveries.length} deliveries for ${user.assignedStore} on ${todayDate} (all trucks)`);
+        console.log(`📱 Driver Dashboard - Loaded ${sortedDeliveries.length} deliveries for ${storeToLoad} on ${todayDate} (all trucks)`);
       } else {
         console.error('Failed to load deliveries:', result.error);
         setDeliveries([]);
@@ -156,13 +162,18 @@ export const DriverDashboard: React.FC = () => {
     // Refresh every 30 seconds to get updates
     const interval = setInterval(loadTodaysDeliveries, 30000);
     return () => clearInterval(interval);
-  }, [user?.assignedStore]);
+  }, [user?.assignedStore, selectedStore]);
 
   const toggleExpanded = (deliveryId: string) => {
     setExpandedDeliveryId(expandedDeliveryId === deliveryId ? null : deliveryId);
   };
 
   const handleStatusUpdate = async (delivery: Delivery, newStatus: string) => {
+    // Master Drivers cannot update status
+    if (isMasterDriver) {
+      return;
+    }
+    
     // Check if delivery is locked locally
     if (lockedDeliveries.has(delivery.id)) {
       return; // Silently ignore if locked locally
@@ -314,6 +325,11 @@ export const DriverDashboard: React.FC = () => {
   };
 
   const handleStatusButtonClick = (delivery: Delivery) => {
+    // Master Drivers cannot interact with status buttons
+    if (isMasterDriver) {
+      return;
+    }
+    
     // Check if delivery is locked (being updated)
     if (lockedDeliveries.has(delivery.id)) {
       return; // Silently ignore if locked
@@ -341,6 +357,11 @@ export const DriverDashboard: React.FC = () => {
   };
 
   const handleUndoClick = (delivery: Delivery) => {
+    // Master Drivers cannot undo status changes
+    if (isMasterDriver) {
+      return;
+    }
+    
     // Check if delivery is locked (being updated)
     if (lockedDeliveries.has(delivery.id)) {
       return; // Silently ignore if locked
@@ -386,6 +407,25 @@ export const DriverDashboard: React.FC = () => {
   };
 
   const renderStatusButton = (delivery: Delivery) => {
+    // For Master Driver, show read-only status
+    if (isMasterDriver) {
+      const statusStyle = getStatusButtonStyle(delivery.status);
+      return (
+        <div className="space-y-2">
+          <button
+            disabled
+            className="w-full px-4 py-3 rounded-lg text-sm font-bold cursor-not-allowed opacity-75"
+            style={{
+              backgroundColor: statusStyle.backgroundColor,
+              color: statusStyle.color
+            }}
+          >
+            {statusStyle.label}
+          </button>
+        </div>
+      );
+    }
+    
     const isOwner = delivery.startedBy === user?.email;
     const notStarted = !delivery.startedBy;
     const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
@@ -527,9 +567,11 @@ export const DriverDashboard: React.FC = () => {
             <div className="flex items-center">
               <Truck className="w-6 h-6 text-blue-600 mr-3" />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Driver Dashboard</h1>
+                <h1 className="text-xl font-bold text-gray-900">
+                  {isMasterDriver ? 'Master Driver Dashboard' : 'Driver Dashboard'}
+                </h1>
                 <p className="text-sm text-gray-500">
-                  {user?.assignedStore} Store - All Trucks - Today's Deliveries
+                  {isMasterDriver ? `${selectedStore} Store - All Trucks - Today's Deliveries (Read Only)` : `${user?.assignedStore} Store - All Trucks - Today's Deliveries`}
                 </p>
               </div>
             </div>
@@ -551,12 +593,40 @@ export const DriverDashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Store Filter Tabs - Only for Master Driver */}
+        {isMasterDriver && (
+          <div className="mb-6">
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setSelectedStore('Framingham')}
+                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  selectedStore === 'Framingham'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                FRAMINGHAM
+              </button>
+              <button
+                onClick={() => setSelectedStore('Marlborough')}
+                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  selectedStore === 'Marlborough'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                MARLBOROUGH
+              </button>
+            </div>
+          </div>
+        )}
+
         {deliveries.length === 0 ? (
           <div className="text-center py-12">
             <Truck className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No deliveries for today</h3>
             <p className="text-gray-500">
-              No deliveries scheduled for {user?.assignedStore} store today.
+              No deliveries scheduled for {isMasterDriver ? selectedStore : user?.assignedStore} store today.
             </p>
           </div>
         ) : (

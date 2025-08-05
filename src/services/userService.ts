@@ -24,7 +24,7 @@ export interface CreateUserData {
   name: string;
   email: string;
   password: string;
-  role: 'salesRep' | 'driver' | 'master';
+  role: 'salesRep' | 'driver' | 'master' | 'masterDriver';
   assignedStore?: 'Framingham' | 'Marlborough';
   assignedTruck?: string;
 }

@@ -48,7 +48,8 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateToUserManagement, curr
               <User className="w-4 h-4 mr-2" />
               <span className="font-medium">{user?.name}</span>
               <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                {user?.role === 'master' ? 'Master User' : 'Sales Rep'}
+                {user?.role === 'master' ? 'Master User' : 
+                 user?.role === 'masterDriver' ? 'Master Driver' : 'Sales Rep'}
               </span>
             </div>
             

@@ -3,7 +3,7 @@ export interface User {
   username: string;
   name: string;
   email?: string;
-  role: 'master' | 'salesRep' | 'driver';
+  role: 'master' | 'salesRep' | 'driver' | 'masterDriver';
   status?: 'active' | 'disabled';
   assignedStore?: 'Framingham' | 'Marlborough';
   assignedTruck?: string;

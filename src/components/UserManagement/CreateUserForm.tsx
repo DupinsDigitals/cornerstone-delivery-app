@@ -12,7 +12,7 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onUserCreated })
     name: '',
     email: '',
     password: '',
-    role: 'salesRep' as 'salesRep' | 'driver' | 'master',
+    role: 'salesRep' as 'salesRep' | 'driver' | 'master' | 'masterDriver',
     assignedStore: 'Framingham' as 'Framingham' | 'Marlborough',
     assignedTruck: '' as string
   });
@@ -192,6 +192,7 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onUserCreated })
             >
               <option value="salesRep">Sales Rep</option>
               <option value="driver">Driver</option>
+              <option value="masterDriver">Master Driver</option>
               <option value="master">Master User</option>
             </select>
           </div>
@@ -272,6 +273,7 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onUserCreated })
         <ul className="text-sm text-blue-800 space-y-1">
           <li><strong>Sales Rep:</strong> Can create and manage delivery schedules</li>
           <li><strong>Driver:</strong> Can view and update delivery status for all trucks at their assigned store</li>
+          <li><strong>Master Driver:</strong> Can view all deliveries from both stores (read-only access, cannot update status)</li>
           <li><strong>Master User:</strong> Full system access - can manage all deliveries, users, and system settings across both stores</li>
         </ul>
       </div>

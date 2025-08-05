@@ -18,9 +18,9 @@ const AppContent: React.FC = () => {
 
   // Determine the appropriate view based on user role
   React.useEffect(() => {
-    if (user?.role === 'driver') {
+    if (user?.role === 'driver' || user?.role === 'masterDriver') {
       setCurrentView('driver-dashboard');
-    } else if (currentView === 'driver-dashboard' && user?.role !== 'driver') {
+    } else if (currentView === 'driver-dashboard' && user?.role !== 'driver' && user?.role !== 'masterDriver') {
       setCurrentView('calendar');
     }
   }, [user?.role]);
@@ -64,7 +64,7 @@ const AppContent: React.FC = () => {
   }
 
   // If user is a driver, show only the driver dashboard
-  if (user?.role === 'driver') {
+  if (user?.role === 'driver' || user?.role === 'masterDriver') {
     return (
       <div className="min-h-screen bg-gray-50">
         <DriverDashboard />
