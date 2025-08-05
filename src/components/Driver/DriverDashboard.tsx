@@ -179,10 +179,13 @@ export const DriverDashboard: React.FC = () => {
       return; // Silently ignore if locked locally
     }
 
-    // Check if another driver owns this delivery
-    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
+    // Check if another driver from the same store owns this delivery
+    const isOwnedByAnotherDriver = delivery.startedBy && 
+                                   delivery.startedBy !== user?.email &&
+                                   delivery.originStore === user?.assignedStore;
+    
     if (isOwnedByAnotherDriver) {
-      alert(`This delivery is being handled by another driver (${delivery.startedBy}). You cannot modify it.`);
+      alert('This delivery is already being handled by another driver.');
       return;
     }
 
@@ -428,7 +431,9 @@ export const DriverDashboard: React.FC = () => {
     
     const isOwner = delivery.startedBy === user?.email;
     const notStarted = !delivery.startedBy;
-    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
+    const isOwnedByAnotherDriver = delivery.startedBy && 
+                                   delivery.startedBy !== user?.email &&
+                                   delivery.originStore === user?.assignedStore;
     const status = delivery.status;
     const isUpdating = updatingDelivery === delivery.id;
     const isLocked = lockedDeliveries.has(delivery.id);
@@ -439,7 +444,7 @@ export const DriverDashboard: React.FC = () => {
     const canUndo = isOwner && !isComplete && status !== 'pending' && status !== 'Pending';
     const isAboutToComplete = nextStatus === 'COMPLETE';
     
-    // Show who owns the delivery if it's owned by another driver
+    // Show who owns the delivery if it's owned by another driver from same store
     const ownerInfo = isOwnedByAnotherDriver ? delivery.startedBy : null;
 
     if (isUpdating || isLocked) {
@@ -479,7 +484,7 @@ export const DriverDashboard: React.FC = () => {
           <button
             disabled
             className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
-            title={`This delivery is being handled by ${ownerInfo}`}
+            title="This delivery is already being handled by another driver"
           >
             🚫 DRIVER: {ownerInfo?.split('@')[0]?.toUpperCase() || 'OTHER'}
           </button>
