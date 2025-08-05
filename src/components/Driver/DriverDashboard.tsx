@@ -779,25 +779,15 @@ export const DriverDashboard: React.FC = () => {
       </div>
 
       {/* Photo Upload Modal */}
-      {photoModalState.isOpen && (() => {
-        const delivery = deliveries.find(d => d.id === photoModalState.deliveryId);
-        const isOwner = delivery?.startedBy === user?.email;
-        const isOnTheWay = delivery?.status === 'ON THE WAY';
-
-        if (isOnTheWay && !isOwner) {
-          return null;
-        }
-
-        return (
-          <PhotoUploadModal
-            deliveryId={photoModalState.deliveryId!}
-            clientName={photoModalState.clientName}
-            onClose={closePhotoUploadModal}
-            onComplete={handlePhotoUploadComplete}
-            onUpload={handleMultiplePhotoUpload}
-          />
-        );
-      })()}
+      {photoModalState.isOpen && (
+        <PhotoUploadModal
+          deliveryId={photoModalState.deliveryId!}
+          clientName={photoModalState.clientName}
+          onClose={closePhotoUploadModal}
+          onComplete={handlePhotoUploadComplete}
+          onUpload={handleMultiplePhotoUpload}
+        />
+      )}
     </div>
   );
 };
