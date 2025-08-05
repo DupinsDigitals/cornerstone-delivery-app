@@ -136,7 +136,7 @@ export const handleScheduleDelivery = async (values: any) => {
     };
 
     // For internal events with repeat settings, generate all recurring instances
-    if (values.type === 'event' && values.repeat && values.repeat !== 'none') {
+    if ((values.type === 'event' || values.type === 'equipmentMaintenance') && values.repeat && values.repeat !== 'none') {
       const recurringEvents = generateRecurringEvents(eventData);
       
       // Save all recurring events
