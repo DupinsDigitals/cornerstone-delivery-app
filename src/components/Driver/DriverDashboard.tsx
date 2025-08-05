@@ -338,6 +338,12 @@ export const DriverDashboard: React.FC = () => {
       return; // Silently ignore if locked
     }
 
+    // Special check for "ON THE WAY" status - only the driver who claimed it can complete it
+    if (delivery.status === 'ON THE WAY' && delivery.startedBy && delivery.startedBy !== user?.email) {
+      alert('This delivery is already in progress by another driver.');
+      return;
+    }
+
     const isOwner = delivery.startedBy === user?.email;
     const notStarted = !delivery.startedBy;
     const currentStatus = delivery.status;
@@ -345,6 +351,11 @@ export const DriverDashboard: React.FC = () => {
     
     // Special handling for COMPLETE status - require photo
     if (nextStatus === 'COMPLETE') {
+      // Double-check ownership before showing photo modal
+      if (delivery.startedBy && delivery.startedBy !== user?.email) {
+        alert('This delivery is already in progress by another driver.');
+        return;
+      }
       showPhotoUploadModal(delivery.id, delivery.clientName);
       return;
     }
@@ -444,8 +455,11 @@ export const DriverDashboard: React.FC = () => {
     const canUndo = isOwner && !isComplete && status !== 'pending' && status !== 'Pending';
     const isAboutToComplete = nextStatus === 'COMPLETE';
     
+    // Additional check for "ON THE WAY" status - only owner can interact
+    const isOnTheWayByOther = status === 'ON THE WAY' && delivery.startedBy && delivery.startedBy !== user?.email;
+    
     // Show who owns the delivery if it's owned by another driver from same store
-    const ownerInfo = isOwnedByAnotherDriver ? delivery.startedBy : null;
+    const ownerInfo = (isOwnedByAnotherDriver || isOnTheWayByOther) ? delivery.startedBy : null;
 
     if (isUpdating || isLocked) {
       return (
@@ -478,21 +492,21 @@ export const DriverDashboard: React.FC = () => {
       );
     }
 
-    if (isOwnedByAnotherDriver) {
+    if (isOwnedByAnotherDriver || isOnTheWayByOther) {
       return (
         <div className="flex items-center space-x-2">
           <button
             disabled
             className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
-            title="This delivery is already being handled by another driver"
+            title={isOnTheWayByOther ? "This delivery is already in progress by another driver" : "This delivery is already being handled by another driver"}
           >
-            🚫 DRIVER: {ownerInfo?.split('@')[0]?.toUpperCase() || 'OTHER'}
+            🚫 {isOnTheWayByOther ? 'IN PROGRESS BY' : 'DRIVER'}: {ownerInfo?.split('@')[0]?.toUpperCase() || 'OTHER'}
           </button>
         </div>
       );
     }
     
-    if (!canUpdate && !isOwnedByAnotherDriver) {
+    if (!canUpdate && !isOwnedByAnotherDriver && !isOnTheWayByOther) {
       return (
         <div className="flex items-center space-x-2">
           <button
