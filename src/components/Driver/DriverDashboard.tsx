@@ -505,11 +505,6 @@ export const DriverDashboard: React.FC = () => {
       );
     }
 
-    if (isOwnedByAnotherDriver || isOnTheWayByOther) {
-      return (
-        <div className="flex items-center space-x-2">
-          <button
-            disabled
             className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
             title="This delivery is currently in progress by another driver and cannot be edited"
           >
