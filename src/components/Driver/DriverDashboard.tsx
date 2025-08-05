@@ -336,8 +336,9 @@ export const DriverDashboard: React.FC = () => {
       return; // Silently ignore if locked
     }
 
-    // CRITICAL: Block access for "ON THE WAY" deliveries not owned by current driver
-    if (delivery.status === 'ON THE WAY' && delivery.startedBy && delivery.startedBy !== user?.email) {
+    // CRITICAL: Block access for ANY delivery owned by another driver
+    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
+    if (isOwnedByAnotherDriver) {
       alert('This delivery is currently in progress by another driver and cannot be edited.');
       return;
     }
@@ -349,11 +350,6 @@ export const DriverDashboard: React.FC = () => {
     
     // Special handling for COMPLETE status - require photo
     if (nextStatus === 'COMPLETE') {
-      // CRITICAL: Final ownership check before photo modal
-      if (delivery.startedBy && delivery.startedBy !== user?.email) {
-        alert('This delivery is currently in progress by another driver and cannot be edited.');
-        return;
-      }
       showPhotoUploadModal(delivery.id, delivery.clientName);
       return;
     }
@@ -440,26 +436,15 @@ export const DriverDashboard: React.FC = () => {
     
     const isOwner = delivery.startedBy === user?.email;
     const notStarted = !delivery.startedBy;
-    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
     const status = delivery.status;
     const isUpdating = updatingDelivery === delivery.id;
     const isLocked = lockedDeliveries.has(delivery.id);
     const statusStyle = getStatusButtonStyle(status);
     const nextStatus = getNextStatus(status);
-    
-    // CRITICAL: For "ON THE WAY" status, only the owner can interact
-    
-    // CRITICAL: For "ON THE WAY" status, only the owner can interact
-    const canUpdate = notStarted || (isOwner && !(status === 'ON THE WAY' && !isOwner));
+    const canUpdate = notStarted || isOwner;
     const isComplete = status === 'COMPLETE';
     const canUndo = isOwner && !isComplete && status !== 'pending' && status !== 'Pending';
     const isAboutToComplete = nextStatus === 'COMPLETE';
-    
-    // Check if delivery is "ON THE WAY" by another driver
-    const isOnTheWayByOther = status === 'ON THE WAY' && isOwnedByAnotherDriver;
-    
-    // Check if delivery is "ON THE WAY" by another driver
-    const ownerInfo = isOwnedByAnotherDriver ? delivery.startedBy : null;
 
     if (isUpdating || isLocked) {
       return (
@@ -492,23 +477,25 @@ export const DriverDashboard: React.FC = () => {
       );
     }
 
-    if (isOwnedByAnotherDriver || isOnTheWayByOther) {
+    // This code is now unreachable since we block at the top of handleStatusButtonClick
+    // But keeping for safety in case of edge cases
+    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
+    if (isOwnedByAnotherDriver) {
+      const ownerInfo = delivery.startedBy;
       return (
         <div className="flex items-center space-x-2">
           <button
             disabled
             className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
-            title={status === 'ON THE WAY' ? 
-              "This delivery is currently in progress by another driver and cannot be edited" : 
-              `This delivery is being handled by ${ownerInfo}`}
+            title={`This delivery is being handled by ${ownerInfo}`}
           >
-            🚫 {status === 'ON THE WAY' ? 'IN PROGRESS BY' : 'DRIVER'}: {ownerInfo?.split('@')[0]?.toUpperCase() || 'OTHER'}
+            🚫 DRIVER: {ownerInfo?.split('@')[0]?.toUpperCase() || 'OTHER'}
           </button>
         </div>
       );
     }
     
-    if (!canUpdate && !isOwnedByAnotherDriver && !isOnTheWayByOther) {
+    if (!canUpdate) {
       return (
         <div className="flex items-center space-x-2">
           <button
