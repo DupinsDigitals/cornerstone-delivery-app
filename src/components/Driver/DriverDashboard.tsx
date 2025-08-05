@@ -179,13 +179,11 @@ export const DriverDashboard: React.FC = () => {
       return; // Silently ignore if locked locally
     }
 
-    // Check if another driver from the same store owns this delivery
-    const isOwnedByAnotherDriver = delivery.startedBy && 
-                                   delivery.startedBy !== user?.email &&
-                                   delivery.originStore === user?.assignedStore;
+    // CRITICAL: Check if another driver owns this delivery
+    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
     
     if (isOwnedByAnotherDriver) {
-      alert('This delivery is already being handled by another driver.');
+      alert('This delivery is currently in progress by another driver and cannot be edited.');
       return;
     }
 
@@ -338,15 +336,9 @@ export const DriverDashboard: React.FC = () => {
       return; // Silently ignore if locked
     }
 
-    // Special check for "ON THE WAY" status - only the driver who claimed it can complete it
+    // CRITICAL: Block access for "ON THE WAY" deliveries not owned by current driver
     if (delivery.status === 'ON THE WAY' && delivery.startedBy && delivery.startedBy !== user?.email) {
       alert('This delivery is currently in progress by another driver and cannot be edited.');
-      return;
-    }
-
-    // Special check for "ON THE WAY" status - only the driver who claimed it can complete it
-    if (delivery.status === 'ON THE WAY' && delivery.startedBy && delivery.startedBy !== user?.email) {
-      alert('This delivery is already in progress by another driver.');
       return;
     }
 
@@ -357,12 +349,7 @@ export const DriverDashboard: React.FC = () => {
     
     // Special handling for COMPLETE status - require photo
     if (nextStatus === 'COMPLETE') {
-      // Double-check ownership before showing photo modal
-      if (delivery.startedBy && delivery.startedBy !== user?.email) {
-        alert('This delivery is already in progress by another driver.');
-        return;
-      }
-      // Double-check ownership before showing photo modal
+      // CRITICAL: Final ownership check before photo modal
       if (delivery.startedBy && delivery.startedBy !== user?.email) {
         alert('This delivery is currently in progress by another driver and cannot be edited.');
         return;
@@ -453,24 +440,24 @@ export const DriverDashboard: React.FC = () => {
     
     const isOwner = delivery.startedBy === user?.email;
     const notStarted = !delivery.startedBy;
-    const isOwnedByAnotherDriver = delivery.startedBy && 
-                                   delivery.startedBy !== user?.email &&
-                                   delivery.originStore === user?.assignedStore;
+    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
     const status = delivery.status;
     const isUpdating = updatingDelivery === delivery.id;
     const isLocked = lockedDeliveries.has(delivery.id);
     const statusStyle = getStatusButtonStyle(status);
     const nextStatus = getNextStatus(status);
-    const canUpdate = notStarted || isOwner;
+    
+    // CRITICAL: For "ON THE WAY" status, only the owner can interact
+    const canUpdate = notStarted || (isOwner && !(status === 'ON THE WAY' && !isOwner));
     const isComplete = status === 'COMPLETE';
     const canUndo = isOwner && !isComplete && status !== 'pending' && status !== 'Pending';
     const isAboutToComplete = nextStatus === 'COMPLETE';
     
-    // Additional check for "ON THE WAY" status - only owner can interact
-    const isOnTheWayByOther = status === 'ON THE WAY' && delivery.startedBy && delivery.startedBy !== user?.email;
+    // Check if delivery is "ON THE WAY" by another driver
+    const isOnTheWayByOther = status === 'ON THE WAY' && isOwnedByAnotherDriver;
     
-    // Show who owns the delivery if it's owned by another driver from same store
-    const ownerInfo = (isOwnedByAnotherDriver || isOnTheWayByOther) ? delivery.startedBy : null;
+    // Show who owns the delivery if it's owned by another driver
+    const ownerInfo = isOwnedByAnotherDriver ? delivery.startedBy : null;
 
     if (isUpdating || isLocked) {
       return (
@@ -509,9 +496,9 @@ export const DriverDashboard: React.FC = () => {
           <button
             disabled
             className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
-            title={isOnTheWayByOther ? "This delivery is already in progress by another driver" : "This delivery is already being handled by another driver"}
+            title="This delivery is currently in progress by another driver and cannot be edited"
           >
-            🚫 {isOnTheWayByOther ? 'IN PROGRESS BY' : 'DRIVER'}: {ownerInfo?.split('@')[0]?.toUpperCase() || 'OTHER'}
+            🚫 {status === 'ON THE WAY' ? 'IN PROGRESS BY' : 'DRIVER'}: {ownerInfo?.split('@')[0]?.toUpperCase() || 'OTHER'}
           </button>
         </div>
       );
