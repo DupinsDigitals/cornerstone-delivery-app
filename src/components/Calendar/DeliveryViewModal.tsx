@@ -521,34 +521,45 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                 </div>
               </div>
 
-              {/* Edit Information - Only show if delivery was edited by a master user */}
-              {delivery.lastEditedBy && delivery.lastEditedBy !== delivery.createdBy && (
-                <div className="flex items-start space-x-3">
-                  <div className="w-4 h-4 text-gray-400 flex items-center justify-center mt-0.5">
-                    ✏️
-                  </div>
-                  <div>
-                    <div className="text-sm">
-                      <span className="font-medium text-gray-700">Edit By:</span>
-                      <span className="ml-1 text-gray-900">{delivery.lastEditedByName || delivery.lastEditedBy}</span>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">Date & Time:</span>
-                      <span className="ml-1">
-                        {delivery.lastEditedAt ? 
-                          new Date(delivery.lastEditedAt).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric', 
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: false
-                          }) : 
-                          'Unknown Date'
-                        }
-                      </span>
-                    </div>
+              {/* Edit History - Show all edits chronologically */}
+              {delivery.editHistory && delivery.editHistory.filter(edit => edit.action === 'edited').length > 0 && (
+                <div className="pt-2 border-t border-gray-100">
+                  <div className="text-sm font-medium text-gray-700 mb-2">Edit History:</div>
+                  <div className="space-y-2">
+                    {delivery.editHistory
+                      .filter(edit => edit.action === 'edited')
+                      .map((edit, index) => (
+                        <div key={index} className="flex items-start space-x-3">
+                          <div className="w-4 h-4 text-gray-400 flex items-center justify-center mt-0.5">
+                            ✏️
+                          </div>
+                          <div>
+                            <div className="text-sm">
+                              <span className="font-medium text-gray-700">Edit By:</span>
+                              <span className="ml-1 text-gray-900">{edit.editedByName || edit.editedBy}</span>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium">Date & Time:</span>
+                              <span className="ml-1">
+                                {new Date(edit.editedAt).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric', 
+                                  year: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  second: '2-digit',
+                                  hour12: false
+                                })}
+                              </span>
+                            </div>
+                            {edit.changes && (
+                              <div className="text-xs text-gray-500 mt-1 italic">
+                                {edit.changes}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}
