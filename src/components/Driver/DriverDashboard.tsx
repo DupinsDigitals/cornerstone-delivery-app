@@ -461,7 +461,6 @@ export const DriverDashboard: React.FC = () => {
     // CRITICAL: For "ON THE WAY" status, only the owner can interact
     const canUpdate = notStarted || (isOwner && !(status === 'ON THE WAY' && !isOwner));
     // CRITICAL: For "ON THE WAY" status, only the owner can interact
-    const canUpdate = notStarted || (isOwner && !(status === 'ON THE WAY' && !isOwner));
     const isComplete = status === 'COMPLETE';
     const canUndo = isOwner && !isComplete && status !== 'pending' && status !== 'Pending';
     const isAboutToComplete = nextStatus === 'COMPLETE';
