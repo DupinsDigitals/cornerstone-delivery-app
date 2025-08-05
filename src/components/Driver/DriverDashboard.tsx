@@ -459,9 +459,6 @@ export const DriverDashboard: React.FC = () => {
     const isOnTheWayByOther = status === 'ON THE WAY' && isOwnedByAnotherDriver;
     
     // Check if delivery is "ON THE WAY" by another driver
-    const isOnTheWayByOther = status === 'ON THE WAY' && isOwnedByAnotherDriver;
-    
-    // Show who owns the delivery if it's owned by another driver
     const ownerInfo = isOwnedByAnotherDriver ? delivery.startedBy : null;
 
     if (isUpdating || isLocked) {
