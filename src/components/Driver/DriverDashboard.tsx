@@ -188,7 +188,7 @@ export const DriverDashboard: React.FC = () => {
     }
 
     // Lock this delivery locally to prevent double-clicks
-            title="This delivery is currently in progress by another driver and cannot be edited"
+    setLockedDeliveries(prev => new Set(prev).add(delivery.id));
     setUpdatingDelivery(delivery.id);
     
     try {
@@ -342,12 +342,6 @@ export const DriverDashboard: React.FC = () => {
       return;
     }
 
-    // CRITICAL: Block access for "ON THE WAY" deliveries not owned by current driver
-    if (delivery.status === 'ON THE WAY' && delivery.startedBy && delivery.startedBy !== user?.email) {
-      alert('This delivery is currently in progress by another driver and cannot be edited.');
-      return;
-    }
-
     const isOwner = delivery.startedBy === user?.email;
     const notStarted = !delivery.startedBy;
     const currentStatus = delivery.status;
@@ -355,11 +349,6 @@ export const DriverDashboard: React.FC = () => {
     
     // Special handling for COMPLETE status - require photo
     if (nextStatus === 'COMPLETE') {
-      // CRITICAL: Final ownership check before photo modal
-      if (delivery.startedBy && delivery.startedBy !== user?.email) {
-        alert('This delivery is currently in progress by another driver and cannot be edited.');
-        return;
-      }
       // CRITICAL: Final ownership check before photo modal
       if (delivery.startedBy && delivery.startedBy !== user?.email) {
         alert('This delivery is currently in progress by another driver and cannot be edited.');
@@ -460,13 +449,9 @@ export const DriverDashboard: React.FC = () => {
     
     // CRITICAL: For "ON THE WAY" status, only the owner can interact
     const canUpdate = notStarted || (isOwner && !(status === 'ON THE WAY' && !isOwner));
-    // CRITICAL: For "ON THE WAY" status, only the owner can interact
     const isComplete = status === 'COMPLETE';
     const canUndo = isOwner && !isComplete && status !== 'pending' && status !== 'Pending';
     const isAboutToComplete = nextStatus === 'COMPLETE';
-    
-    // Check if delivery is "ON THE WAY" by another driver
-    const isOnTheWayByOther = status === 'ON THE WAY' && isOwnedByAnotherDriver;
     
     // Check if delivery is "ON THE WAY" by another driver
     const isOnTheWayByOther = status === 'ON THE WAY' && isOwnedByAnotherDriver;
@@ -505,6 +490,11 @@ export const DriverDashboard: React.FC = () => {
       );
     }
 
+    if (isOwnedByAnotherDriver || isOnTheWayByOther) {
+      return (
+        <div className="flex items-center space-x-2">
+          <button
+            disabled
             className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
             title="This delivery is currently in progress by another driver and cannot be edited"
           >
@@ -549,18 +539,6 @@ export const DriverDashboard: React.FC = () => {
             </span>
           )}
         </button>
-        
-
-      {/* Photo Upload Modal */}
-      {photoModalState.isOpen && (
-        <PhotoUploadModal
-          deliveryId={photoModalState.deliveryId!}
-          clientName={photoModalState.clientName}
-          onClose={closePhotoUploadModal}
-          onComplete={handlePhotoUploadComplete}
-          onUpload={handleMultiplePhotoUpload}
-        />
-      )}
         {canUndo && (
           <button
             onClick={() => handleUndoClick(delivery)}
@@ -795,6 +773,17 @@ export const DriverDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Photo Upload Modal */}
+      {photoModalState.isOpen && (
+        <PhotoUploadModal
+          deliveryId={photoModalState.deliveryId!}
+          clientName={photoModalState.clientName}
+          onClose={closePhotoUploadModal}
+          onComplete={handlePhotoUploadComplete}
+          onUpload={handleMultiplePhotoUpload}
+        />
+      )}
     </div>
   );
 };
