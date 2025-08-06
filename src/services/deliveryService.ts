@@ -265,6 +265,38 @@ export const saveDeliveryToFirestore = async (delivery: Delivery, userId: string
         editHistory: newEditHistory
       });
       
+      // Send webhook for new delivery creation
+      try {
+        console.log(`📡 Triggering delivery creation webhook for delivery ${docRef.id}`);
+        
+        const webhookPayload = {
+          name: deliveryData.clientName,
+          phone: deliveryData.phone,
+          scheduledDate: deliveryData.scheduledDate,
+          address: deliveryData.address,
+          invoiceNumber: deliveryData.invoiceNumber
+        };
+        
+        console.log(`📤 Sending delivery creation webhook payload:`, webhookPayload);
+        
+        const response = await fetch("https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/af60afe6-2464-4703-85b3-33d4ae13324f", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(webhookPayload)
+        });
+        
+        if (response.ok) {
+          console.log(`✅ Delivery creation webhook triggered successfully for delivery ${docRef.id}`);
+        } else {
+          console.error(`❌ Delivery creation webhook failed with status ${response.status}`);
+        }
+      } catch (webhookError) {
+        console.error(`❌ Error triggering delivery creation webhook for delivery ${docRef.id}:`, webhookError);
+        // Don't fail the delivery creation if webhook fails
+      }
+      
       return { success: true, id: docRef.id };
     } else {
       // This is an existing delivery, update it
