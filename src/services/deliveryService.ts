@@ -244,6 +244,7 @@ const firestoreToDelivery = (doc: any): Delivery => {
 // Save delivery to Firestore
 export const saveDeliveryToFirestore = async (delivery: Delivery, userId: string, userName?: string): Promise<{ success: boolean; id?: string; error?: string }> => {
   try {
+    console.log("🔥 ENTROU NA FUNÇÃO saveDeliveryToFirestore");
     const deliveryData = deliveryToFirestore(delivery, userId, userName);
     
     if (delivery.id && delivery.id.startsWith('delivery_')) {
