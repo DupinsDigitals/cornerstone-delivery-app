@@ -267,6 +267,7 @@ export const saveDeliveryToFirestore = async (delivery: Delivery, userId: string
       });
       
       // Send webhook for new delivery creation
+      console.log("🚀 Attempting to trigger delivery webhook now...");
       try {
         console.log(`📡 Triggering delivery creation webhook for delivery ${docRef.id}`);
         
