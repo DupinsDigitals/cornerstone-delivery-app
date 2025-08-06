@@ -281,7 +281,7 @@ export const saveDeliveryToFirestore = async (delivery: Delivery, userId: string
         
         console.log(`📤 Sending delivery creation webhook payload:`, webhookPayload);
         
-        const response = await fetch("https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/af60afe6-2464-4703-85b3-33d4ae13324f", {
+        const response = await fetch(https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/3f877227-3f75-48b4-a4ec-fe434fe61a60, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
