@@ -190,11 +190,10 @@ export const DriverDashboard: React.FC = () => {
 // Check if this driver already has any delivery in progress (not complete)
 const activeDeliveries = deliveries.filter(d =>
   d.startedBy === user?.email &&
-  d.id !== delivery.id &&
   d.status?.trim().toLowerCase() !== 'complete'
 );
 
-console.log('🧪 Deliveries check:', deliveries.map(d => ({
+console.log('🚫 Deliveries check (should block if > 0):', deliveries.map(d => ({
   id: d.id,
   startedBy: d.startedBy,
   status: d.status,
