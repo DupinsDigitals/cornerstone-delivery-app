@@ -350,9 +350,13 @@ export const DriverDashboard: React.FC = () => {
     
     // Special handling for COMPLETE status - require photo
     if (nextStatus === 'COMPLETE') {
-      showPhotoUploadModal(delivery.id, delivery.clientName);
-      return;
-    }
+  if (isOwner) {
+    showPhotoUploadModal(delivery.id, delivery.clientName);
+  } else {
+    alert(`This delivery was started by ${delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0] || 'another driver'} and can only be completed by them.`);
+  }
+  return;
+}
     
     // Allow progression if:
     // 1. Delivery is not started (PENDING) - anyone can start
