@@ -164,27 +164,28 @@ export const DriverDashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [user?.assignedStore, selectedStore]);
 
-  const toggleExpanded = (deliveryId: string) => {
-    setExpandedDeliveryId(expandedDeliveryId === deliveryId ? null : deliveryId);
-  };
+ const handleStatusUpdate = async (delivery: Delivery, newStatus: string) => {
+  // ⏳ Atualiza a lista de deliveries antes de checar
+  await loadTodaysDeliveries();
 
-  const handleStatusUpdate = async (delivery: Delivery, newStatus: string) => {
-    // 🚫 BLOCK if this driver has another delivery already started (not complete)
-const isStarting = ['getting load', 'on the way'].includes(newStatus.trim().toLowerCase());
+  // 🚫 BLOCK if this driver has another delivery already started (not complete)
+  const isStarting = ['getting load', 'on the way'].includes(newStatus.trim().toLowerCase());
 
-if (isStarting) {
-  const activeDeliveries = deliveries.filter(d =>
-    d.startedBy === user?.email &&
-    d.status?.trim().toLowerCase() !== 'complete'
-  );
+  if (isStarting) {
+    const activeDeliveries = deliveries.filter(d =>
+      d.startedBy === user?.email &&
+      d.id !== delivery.id &&
+      d.status?.trim().toLowerCase() !== 'complete'
+    );
 
-  console.log('🛑 Active Deliveries Check (with newStatus logic):', activeDeliveries);
+    console.log('🧱 Active Deliveries Check (with newStatus logic):', activeDeliveries);
 
-  if (activeDeliveries.length > 0) {
-    alert("You already have a delivery in progress. Please complete it before starting another.");
-    return;
+    if (activeDeliveries.length > 0) {
+      alert("You already have a delivery in progress. Please complete it before starting another.");
+      return;
+    }
   }
-}
+
     // Master Drivers cannot update status
     if (isMasterDriver) {
       return;
