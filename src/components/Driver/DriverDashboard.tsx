@@ -194,7 +194,7 @@ const hasActiveDelivery = deliveries.some(d =>
   d.status !== 'COMPLETE'
 );
 
-if (delivery.status === 'pending' && hasActiveDelivery) {
+if ((delivery.status === 'pending' || delivery.status === 'Pending') && hasActiveDelivery) {
   alert("You already have a delivery in progress. Please complete it before starting another.");
   return;
 }
