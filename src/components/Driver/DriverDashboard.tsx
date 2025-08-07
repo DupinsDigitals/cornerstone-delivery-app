@@ -186,7 +186,17 @@ export const DriverDashboard: React.FC = () => {
       alert('This delivery is currently in progress by another driver and cannot be edited.');
       return;
     }
+// Check if this driver already has an active delivery (not complete)
+const hasActiveDelivery = deliveries.some(d =>
+  d.id !== delivery.id &&
+  d.startedBy === user?.email &&
+  d.status !== 'COMPLETE'
+);
 
+if (delivery.status === 'pending' && hasActiveDelivery) {
+  alert("You already have a delivery in progress. Please complete it before starting another.");
+  return;
+}
     // Lock this delivery locally to prevent double-clicks
     setLockedDeliveries(prev => new Set(prev).add(delivery.id));
     setUpdatingDelivery(delivery.id);
