@@ -66,7 +66,7 @@ const AppContent: React.FC = () => {
   // If user is a driver, show only the driver dashboard
   if (user?.role === 'driver' || user?.role === 'masterDriver') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-red-50">
         <DriverDashboard />
       </div>
     );
