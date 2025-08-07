@@ -188,11 +188,15 @@ export const DriverDashboard: React.FC = () => {
     }
     
 // Check if this driver already has an active delivery (not complete)
-const hasActiveDelivery = deliveries.some(d =>
+const activeDeliveries = deliveries.filter(d =>
   d.id !== delivery.id &&
   d.startedBy === user?.email &&
   d.status.toLowerCase() !== 'complete'
 );
+
+console.log('🧪 Active deliveries found:', activeDeliveries);
+
+const hasActiveDelivery = activeDeliveries.length > 0;
 console.log('🔍 Active Delivery Check:', {
   currentDelivery: delivery.invoiceNumber,
   driver: user?.email,
