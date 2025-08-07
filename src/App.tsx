@@ -55,16 +55,9 @@ const AppContent: React.FC = () => {
   const showCustomerTracker = window.location.pathname === '/track' || currentView === 'customer-tracker';
   
   // Show customer tracker without authentication
-  if (showCustomerTracker) {
-  return (
-    <>
-      <div style={{ textAlign: 'center', color: 'red', fontWeight: 'bold' }}>
-        VERSAO TESTE - FORA DA PASTA PROJECT
-      </div>
-      <CustomerTracker />
-    </>
-  );
-}
+ if (showCustomerTracker) {
+    return <CustomerTracker />;
+  }
 
   if (!isAuthenticated) {
     return <Login />;
