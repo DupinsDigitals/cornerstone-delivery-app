@@ -172,7 +172,7 @@ export const DriverDashboard: React.FC = () => {
     // 🚫 BLOCK if this driver has another delivery already started (not complete)
 const activeDeliveries = deliveries.filter(d =>
   d.startedBy === user?.email &&
-  d.id !== delivery.id &&
+  (!delivery.id || d.id !== delivery.id) &&
   d.status?.trim().toLowerCase() !== 'complete'
 );
 
