@@ -186,6 +186,7 @@ export const DriverDashboard: React.FC = () => {
       alert('This delivery is currently in progress by another driver and cannot be edited.');
       return;
     }
+    
 // Check if this driver already has an active delivery (not complete)
 const hasActiveDelivery = deliveries.some(d =>
   d.id !== delivery.id &&
