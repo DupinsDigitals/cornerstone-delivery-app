@@ -191,7 +191,7 @@ export const DriverDashboard: React.FC = () => {
 const hasActiveDelivery = deliveries.some(d =>
   d.id !== delivery.id &&
   d.startedBy === user?.email &&
-  d.status !== 'COMPLETE'
+  d.status.toLowerCase() !== 'complete'
 );
 
 if ((delivery.status === 'pending' || delivery.status === 'Pending') && hasActiveDelivery) {
