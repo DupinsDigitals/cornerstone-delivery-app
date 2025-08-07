@@ -194,7 +194,14 @@ const activeDeliveries = deliveries.filter(d =>
   d.status?.trim().toLowerCase() !== 'complete'
 );
 
-console.log('🛑 Block if any active deliveries:', activeDeliveries);
+console.log('🧪 Deliveries check:', deliveries.map(d => ({
+  id: d.id,
+  startedBy: d.startedBy,
+  status: d.status,
+  isMine: d.startedBy === user?.email,
+  isNotComplete: d.status?.trim().toLowerCase() !== 'complete',
+  includedInFilter: d.startedBy === user?.email && d.status?.trim().toLowerCase() !== 'complete'
+})));
 
 if (activeDeliveries.length > 0) {
   alert("You already have a delivery in progress. Please complete it before starting another.");
