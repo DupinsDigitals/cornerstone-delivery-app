@@ -193,6 +193,7 @@ const activeDeliveries = deliveries.filter(d =>
   d.status.toLowerCase() !== 'complete'
 );
 
+const hasActiveDelivery = activeDeliveries.length > 0;
 const isTryingToStartAnother = activeDeliveries.length > 0 && delivery.startedBy !== user?.email;
 
 if (isTryingToStartAnother) {
