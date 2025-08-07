@@ -194,21 +194,9 @@ const activeDeliveries = deliveries.filter(d =>
   d.status?.trim().toLowerCase() !== 'complete'
 );
 
+console.log('🧪 Active deliveries (should block if > 0):', activeDeliveries);
+
 if (activeDeliveries.length > 0) {
-  alert("You already have a delivery in progress. Please complete it before starting another.");
-  return;
-}
-console.log('🔍 Active Delivery Check:', {
-  currentDelivery: delivery.invoiceNumber,
-  driver: user?.email,
-  hasActiveDelivery,
-  allDeliveries: deliveries.map(d => ({
-    id: d.id,
-    status: d.status,
-    startedBy: d.startedBy
-  }))
-});
-if ((delivery.status === 'pending' || delivery.status === 'Pending') && hasActiveDelivery) {
   alert("You already have a delivery in progress. Please complete it before starting another.");
   return;
 }
