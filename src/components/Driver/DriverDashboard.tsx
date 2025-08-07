@@ -197,6 +197,7 @@ if (delivery.status === 'pending' && hasActiveDelivery) {
   alert("You already have a delivery in progress. Please complete it before starting another.");
   return;
 }
+    
     // Lock this delivery locally to prevent double-clicks
     setLockedDeliveries(prev => new Set(prev).add(delivery.id));
     setUpdatingDelivery(delivery.id);
