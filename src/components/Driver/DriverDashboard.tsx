@@ -496,18 +496,29 @@ export const DriverDashboard: React.FC = () => {
     }
     
     if (!canUpdate) {
-      return (
-        <div className="flex items-center space-x-2">
-          <button
-            disabled
-            className="flex-1 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-bold cursor-not-allowed"
-          >
-            UNAVAILABLE
-          </button>
-        </div>
-      );
-    }
+  const ownerName = delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0]?.toUpperCase() || 'ANOTHER DRIVER';
+  const statusStyle = getStatusButtonStyle(delivery.status);
 
+  return (
+    <div className="flex items-center space-x-2">
+      <button
+        onClick={() => alert(`This delivery was started by ${ownerName}. You cannot update its status.`)}
+        className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm cursor-not-allowed"
+        style={{
+          backgroundColor: statusStyle.backgroundColor,
+          color: statusStyle.color,
+          opacity: 0.5
+        }}
+        title={`Started by ${ownerName}`}
+      >
+        🚫 {statusStyle.label}
+        <span className="block text-xs opacity-75">
+          Locked by {ownerName}
+        </span>
+      </button>
+    </div>
+  );
+}
     return (
       <div className="flex items-center space-x-2">
         <button
