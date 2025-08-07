@@ -56,8 +56,15 @@ const AppContent: React.FC = () => {
   
   // Show customer tracker without authentication
   if (showCustomerTracker) {
-    return <CustomerTracker />;
-  }
+  return (
+    <>
+      <div style={{ textAlign: 'center', color: 'red', fontWeight: 'bold' }}>
+        VERSAO TESTE - FORA DA PASTA PROJECT
+      </div>
+      <CustomerTracker />
+    </>
+  );
+}
 
   if (!isAuthenticated) {
     return <Login />;
