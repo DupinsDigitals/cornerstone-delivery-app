@@ -169,6 +169,19 @@ export const DriverDashboard: React.FC = () => {
   };
 
   const handleStatusUpdate = async (delivery: Delivery, newStatus: string) => {
+    // 🚫 BLOCK if this driver has another delivery already started (not complete)
+const activeDeliveries = deliveries.filter(d =>
+  d.startedBy === user?.email &&
+  d.id !== delivery.id &&
+  d.status?.trim().toLowerCase() !== 'complete'
+);
+
+console.log('🛑 Active Deliveries Check:', activeDeliveries);
+
+if (activeDeliveries.length > 0) {
+  alert("You already have a delivery in progress. Please complete it before starting another.");
+  return;
+}
     // Master Drivers cannot update status
     if (isMasterDriver) {
       return;
@@ -186,27 +199,6 @@ export const DriverDashboard: React.FC = () => {
       alert('This delivery is currently in progress by another driver and cannot be edited.');
       return;
     }
-    
-// Check if this driver already has any delivery in progress (not complete)
-const activeDeliveries = deliveries.filter(d =>
-  d.startedBy === user?.email &&
-  d.id !== delivery.id && // <- impede que a entrega atual entre na contagem
-  d.status?.trim().toLowerCase() !== 'complete'
-);
-
-console.log('🚫 Deliveries check (should block if > 0):', deliveries.map(d => ({
-  id: d.id,
-  startedBy: d.startedBy,
-  status: d.status,
-  isMine: d.startedBy === user?.email,
-  isNotComplete: d.status?.trim().toLowerCase() !== 'complete',
-  includedInFilter: d.startedBy === user?.email && d.status?.trim().toLowerCase() !== 'complete'
-})));
-
-if (activeDeliveries.length > 0) {
-  alert("You already have a delivery in progress. Please complete it before starting another.");
-  return;
-}
     
     // Lock this delivery locally to prevent double-clicks
     setLockedDeliveries(prev => new Set(prev).add(delivery.id));
