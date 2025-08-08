@@ -21,16 +21,29 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
     const executionId = `${deliveryId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     functions.logger.info(`🚀 Function started - Execution ID: ${executionId}, Delivery: ${deliveryId}`);
     
+    // CRITICAL: Add 2-second delay to prevent race conditions
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    functions.logger.info(`⏰ Delay completed - Execution: ${executionId}`);
+    
     // CRITICAL: Early check - If webhook already sent, skip immediately
-    if (deliveryData.scheduledWebhookSent === true) {
-      functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId}, skipping - Execution: ${executionId}`);
+    const initialDoc = await snap.ref.get();
+    const initialData = initialDoc.exists() ? initialDoc.data() : {};
+    
+    if (initialData.scheduledWebhookSent === true) {
+      functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId} (initial check), skipping - Execution: ${executionId}`);
+      return null;
+    }
+    
+    // Check if another execution is already processing this delivery
+    if (initialData.webhookProcessing === true) {
+      functions.logger.info(`❌ Another execution is processing delivery ${deliveryId}, skipping - Execution: ${executionId}`);
       return null;
     }
     
     try {
       // Pre-check: Only process PENDING deliveries
-      if (deliveryData.status && deliveryData.status !== 'PENDING') {
-        functions.logger.info(`❌ Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook - Execution: ${executionId}`);
+      if (initialData.status && initialData.status.toLowerCase() !== 'pending') {
+        functions.logger.info(`❌ Delivery ${deliveryId} status is not PENDING (${initialData.status}), skipping webhook - Execution: ${executionId}`);
         return null;
       }
       
@@ -50,14 +63,30 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
         
         const freshData = freshDoc.data();
         
-        // CRITICAL: Double-check if webhook was already sent (race condition protection)
+        // CRITICAL: Triple-check if webhook was already sent or is being processed
         if (freshData.scheduledWebhookSent === true) {
-          functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId} (detected in transaction), skipping - Execution: ${executionId}`);
+          functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId} (transaction check), skipping - Execution: ${executionId}`);
           return;
         }
         
+        if (freshData.webhookProcessing === true) {
+          functions.logger.info(`❌ Another execution is processing delivery ${deliveryId} (transaction check), skipping - Execution: ${executionId}`);
+          return;
+        }
+        
+        // ATOMIC: First mark as processing, then as sent
+        transaction.update(docRef, {
+          webhookProcessing: true,
+          webhookProcessingBy: executionId,
+          webhookProcessingAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Small delay within transaction
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         // ATOMIC: Set multiple flags to prevent any possibility of duplication
         transaction.update(docRef, {
+          webhookProcessing: false,
           scheduledWebhookSent: true,
           scheduledWebhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
           webhookExecutionId: executionId,
@@ -74,6 +103,9 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
         functions.logger.info(`❌ Webhook flag was not set for delivery ${deliveryId}, skipping webhook send - Execution: ${executionId}`);
         return null;
       }
+      
+      // Additional delay before final verification
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // FINAL VERIFICATION: Re-read document to ensure flag is set
       const verifyDoc = await snap.ref.get();
@@ -95,12 +127,12 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       functions.logger.info(`🎯 All verifications passed, proceeding with webhook send - Execution: ${executionId}`);
       
       // Extract fields with sensible fallbacks
-      const customerName = deliveryData.customerName || deliveryData.clientName || '';
-      const customerPhone = deliveryData.customerPhone || deliveryData.destinationPhone || deliveryData.phone || '';
-      const address = deliveryData.address || deliveryData.deliveryAddress || '';
-      const scheduledDateTime = deliveryData.scheduledDateTime || deliveryData.scheduledAt || `${deliveryData.scheduledDate || ''} ${deliveryData.scheduledTime || ''}`.trim();
-      const invoiceNumber = deliveryData.invoiceNumber || deliveryData.invoice || '';
-      const store = deliveryData.store || deliveryData.location || deliveryData.originStore || '';
+      const customerName = verifyData.customerName || verifyData.clientName || '';
+      const customerPhone = verifyData.customerPhone || verifyData.destinationPhone || verifyData.phone || '';
+      const address = verifyData.address || verifyData.deliveryAddress || '';
+      const scheduledDateTime = verifyData.scheduledDateTime || verifyData.scheduledAt || `${verifyData.scheduledDate || ''} ${verifyData.scheduledTime || ''}`.trim();
+      const invoiceNumber = verifyData.invoiceNumber || verifyData.invoice || '';
+      const store = verifyData.store || verifyData.location || verifyData.originStore || '';
       
       // Validate required fields
       if (!customerPhone || !address || !scheduledDateTime) {
@@ -151,6 +183,17 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       }
       
     } catch (error) {
+      // Clean up processing flag on error
+      try {
+        await snap.ref.update({
+          webhookProcessing: false,
+          webhookProcessingError: error.message,
+          webhookProcessingErrorAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (cleanupError) {
+        functions.logger.error(`❌ Error cleaning up processing flag for delivery ${deliveryId} - Execution: ${executionId}:`, cleanupError.message);
+      }
+      
       if (error.code === 'ECONNABORTED') {
         functions.logger.error(`⏰ Webhook timeout for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
       } else if (error.response) {
