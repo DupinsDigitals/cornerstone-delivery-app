@@ -17,8 +17,8 @@ export const DriverDashboard: React.FC = () => {
   const [selectedStore, setSelectedStore] = useState<'Framingham' | 'Marlborough'>('Framingham');
 
   const toggleExpanded = (id: string) => {
-  setExpandedDeliveryId(prev => (prev === id ? null : id));
-};
+    setExpandedDeliveryId(prev => (prev === id ? null : id));
+  };
 
   // Photo upload modal state
   const [photoModalState, setPhotoModalState] = useState<{
@@ -169,27 +169,27 @@ export const DriverDashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [user?.assignedStore, selectedStore]);
 
- const handleStatusUpdate = async (delivery: Delivery, newStatus: string) => {
-  // ⏳ Atualiza a lista de deliveries antes de checar
-  await loadTodaysDeliveries();
+  const handleStatusUpdate = async (delivery: Delivery, newStatus: string) => {
+    // ⏳ Atualiza a lista de deliveries antes de checar
+    await loadTodaysDeliveries();
 
-  // 🚫 BLOCK if this driver has another delivery already started (not complete)
-  const isStarting = ['getting load', 'on the way'].includes(newStatus.trim().toLowerCase());
+    // 🚫 BLOCK if this driver has another delivery already started (not complete)
+    const isStarting = ['getting load', 'on the way'].includes(newStatus.trim().toLowerCase());
 
-  if (isStarting) {
-    const activeDeliveries = deliveries.filter(d =>
-      d.startedBy === user?.email &&
-      d.id !== delivery.id &&
-      d.status?.trim().toLowerCase() !== 'complete'
-    );
+    if (isStarting) {
+      const activeDeliveries = deliveries.filter(d =>
+        d.startedBy === user?.email &&
+        d.id !== delivery.id &&
+        d.status?.trim().toLowerCase() !== 'complete'
+      );
 
-    console.log('🧱 Active Deliveries Check (with newStatus logic):', activeDeliveries);
+      console.log('🧱 Active Deliveries Check (with newStatus logic):', activeDeliveries);
 
-    if (activeDeliveries.length > 0) {
-      alert("You already have a delivery in progress. Please complete it before starting another.");
-      return;
+      if (activeDeliveries.length > 0) {
+        alert("You already have a delivery in progress. Please complete it before starting another.");
+        return;
+      }
     }
-  }
 
     // Master Drivers cannot update status
     if (isMasterDriver) {
@@ -372,22 +372,23 @@ export const DriverDashboard: React.FC = () => {
     
     // Special handling for COMPLETE status - require photo
     if (nextStatus === 'COMPLETE') {
-  if (isOwner) {
-    showPhotoUploadModal(delivery.id, delivery.clientName);
-  } else {
-    alert(`This delivery was started by ${delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0] || 'another driver'} and can only be completed by them.`);
-  }
-  return;
-}
+      if (isOwner) {
+        showPhotoUploadModal(delivery.id, delivery.clientName);
+      } else {
+        alert(`This delivery was started by ${delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0] || 'another driver'} and can only be completed by them.`);
+      }
+      return;
+    }
     
     // Allow progression if:
     // 1. Delivery is not started (PENDING) - anyone can start
     // 2. Delivery is started by this driver - only they can progress
     if (notStarted || isOwner) {
-  if (nextStatus !== currentStatus) {
-    await handleStatusUpdate(delivery, nextStatus); // ou passe a lista atualizada, ver nota abaixo
-  }
-}
+      if (nextStatus !== currentStatus) {
+        await handleStatusUpdate(delivery, nextStatus); // ou passe a lista atualizada, ver nota abaixo
+      }
+    }
+  };
 
   const handleUndoClick = (delivery: Delivery) => {
     // Master Drivers cannot undo status changes
@@ -521,29 +522,29 @@ export const DriverDashboard: React.FC = () => {
     }
     
     if (!canUpdate) {
-  const ownerName = delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0]?.toUpperCase() || 'ANOTHER DRIVER';
-  const statusStyle = getStatusButtonStyle(delivery.status);
+      const ownerName = delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0]?.toUpperCase() || 'ANOTHER DRIVER';
+      const statusStyle = getStatusButtonStyle(delivery.status);
 
-  return (
-    <div className="flex items-center space-x-2">
-      <button
-        onClick={() => alert(`This delivery was started by ${ownerName}. You cannot update its status.`)}
-        className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm cursor-not-allowed"
-        style={{
-          backgroundColor: statusStyle.backgroundColor,
-          color: statusStyle.color,
-          opacity: 0.5
-        }}
-        title={`Started by ${ownerName}`}
-      >
-        🚫 {statusStyle.label}
-        <span className="block text-xs opacity-75">
-          Locked by {ownerName}
-        </span>
-      </button>
-    </div>
-  );
-}
+      return (
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => alert(`This delivery was started by ${ownerName}. You cannot update its status.`)}
+            className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm cursor-not-allowed"
+            style={{
+              backgroundColor: statusStyle.backgroundColor,
+              color: statusStyle.color,
+              opacity: 0.5
+            }}
+            title={`Started by ${ownerName}`}
+          >
+            🚫 {statusStyle.label}
+            <span className="block text-xs opacity-75">
+              Locked by {ownerName}
+            </span>
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center space-x-2">
         <button
@@ -801,17 +802,16 @@ export const DriverDashboard: React.FC = () => {
         )}
       </div>
 
-{ /* Photo Upload Modal */ }
-{photoModalState.isOpen && (
-  <PhotoUploadModal
-    deliveryId={photoModalState.deliveryId!}
-    clientName={photoModalState.clientName}
-    onClose={closePhotoUploadModal}
-    onComplete={handlePhotoUploadComplete}
-    onUpload={handleMultiplePhotoUpload}
-  />
-)}
+      {/* Photo Upload Modal */}
+      {photoModalState.isOpen && (
+        <PhotoUploadModal
+          deliveryId={photoModalState.deliveryId!}
+          clientName={photoModalState.clientName}
+          onClose={closePhotoUploadModal}
+          onComplete={handlePhotoUploadComplete}
+          onUpload={handleMultiplePhotoUpload}
+        />
+      )}
     </div>
-</div>   // fecha a div principal do JSX do return
-);        // fecha o parêntese do return(
-};         // fecha a função DriverDashboard
+  );
+};
