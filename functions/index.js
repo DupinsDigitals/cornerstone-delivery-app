@@ -41,7 +41,7 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
     }
     
     try {
-      // Pre-check: Only process PENDING deliveries
+      // Pre-check: Only process PENDING deliveries (case-insensitive)
       if (initialData.status && initialData.status.toLowerCase() !== 'pending') {
         functions.logger.info(`❌ Delivery ${deliveryId} status is not PENDING (${initialData.status}), skipping webhook - Execution: ${executionId}`);
         return null;
