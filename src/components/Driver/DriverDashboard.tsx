@@ -802,15 +802,12 @@ export const DriverDashboard: React.FC = () => {
       </div>
 
       {/* Photo Upload Modal */}
-      {photoModalState.isOpen && (
-        <PhotoUploadModal
-          deliveryId={photoModalState.deliveryId!}
-          clientName={photoModalState.clientName}
-          onClose={closePhotoUploadModal}
-          onComplete={handlePhotoUploadComplete}
-          onUpload={handleMultiplePhotoUpload}
-        />
-      )}
-    </div>
-  );
-};
+{photoModalState.isOpen && (
+  <PhotoUploadModal
+    deliveryId={photoModalState.deliveryId!}
+    clientName={photoModalState.clientName}
+    onClose={closePhotoUploadModal}
+    onComplete={handlePhotoUploadComplete}
+    onUpload={handleMultiplePhotoUpload}
+  />
+)}
