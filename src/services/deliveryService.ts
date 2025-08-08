@@ -263,7 +263,7 @@ exports.onDeliveryDeleted_sendWebhook = functions.firestore
   .document('deliveries/{id}')
   .onDelete(async (snap, context) => {
     const deliveryId = context.params.id;
-    const deletedData = snap.data();
+    const deliveryData = snap.data();
     
     // Generate unique execution ID for this function run
     const executionId = `${deliveryId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -274,18 +274,18 @@ exports.onDeliveryDeleted_sendWebhook = functions.firestore
       const webhookPayload = {
         event: 'delivery_deleted',
         deliveryId,
-        customerName: deletedData.customerName || deletedData.clientName || '',
-        customerPhone: deletedData.customerPhone || deletedData.destinationPhone || deletedData.phone || '',
-        address: deletedData.address || deletedData.deliveryAddress || '',
-        invoiceNumber: deletedData.invoiceNumber || deletedData.invoice || '',
-        store: deletedData.store || deletedData.location || deletedData.originStore || '',
+        customerName: deliveryData.customerName || deliveryData.clientName || '',
+        customerPhone: deliveryData.customerPhone || deliveryData.destinationPhone || deliveryData.phone || '',
+        address: deliveryData.address || deliveryData.deliveryAddress || '',
+        invoiceNumber: deliveryData.invoiceNumber || deliveryData.invoice || '',
+        store: deliveryData.store || deliveryData.location || deliveryData.originStore || '',
         executionId
       };
       
       functions.logger.info(`📤 Sending deletion webhook for delivery ${deliveryId} - Execution: ${executionId}`, webhookPayload);
       
       // Send webhook using axios with 8s timeout
-      const webhookUrl = 'https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/delivery-deleted';
+      const webhookUrl = 'https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/a7c21c87-6ac3-45db-9d67-7eab83d43ba1';
       
       const response = await axios.post(webhookUrl, webhookPayload, {
         timeout: 8000,
