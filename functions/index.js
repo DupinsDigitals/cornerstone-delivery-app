@@ -21,29 +21,16 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
     const executionId = `${deliveryId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     functions.logger.info(`🚀 Function started - Execution ID: ${executionId}, Delivery: ${deliveryId}`);
     
-    // CRITICAL: Add 2-second delay to prevent race conditions
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    functions.logger.info(`⏰ Delay completed - Execution: ${executionId}`);
-    
     // CRITICAL: Early check - If webhook already sent, skip immediately
-    const initialDoc = await snap.ref.get();
-    const initialData = initialDoc.exists() ? initialDoc.data() : {};
-    
-    if (initialData.scheduledWebhookSent === true) {
-      functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId} (initial check), skipping - Execution: ${executionId}`);
-      return null;
-    }
-    
-    // Check if another execution is already processing this delivery
-    if (initialData.webhookProcessing === true) {
-      functions.logger.info(`❌ Another execution is processing delivery ${deliveryId}, skipping - Execution: ${executionId}`);
+    if (deliveryData.scheduledWebhookSent === true) {
+      functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId}, skipping - Execution: ${executionId}`);
       return null;
     }
     
     try {
-      // Pre-check: Only process PENDING deliveries (case-insensitive)
-      if (initialData.status && initialData.status.toLowerCase() !== 'pending') {
-        functions.logger.info(`❌ Delivery ${deliveryId} status is not PENDING (${initialData.status}), skipping webhook - Execution: ${executionId}`);
+      // Pre-check: Only process PENDING deliveries
+      if (deliveryData.status && deliveryData.status !== 'PENDING') {
+        functions.logger.info(`❌ Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook - Execution: ${executionId}`);
         return null;
       }
       
@@ -63,30 +50,14 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
         
         const freshData = freshDoc.data();
         
-        // CRITICAL: Triple-check if webhook was already sent or is being processed
+        // CRITICAL: Double-check if webhook was already sent (race condition protection)
         if (freshData.scheduledWebhookSent === true) {
-          functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId} (transaction check), skipping - Execution: ${executionId}`);
+          functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId} (detected in transaction), skipping - Execution: ${executionId}`);
           return;
         }
-        
-        if (freshData.webhookProcessing === true) {
-          functions.logger.info(`❌ Another execution is processing delivery ${deliveryId} (transaction check), skipping - Execution: ${executionId}`);
-          return;
-        }
-        
-        // ATOMIC: First mark as processing, then as sent
-        transaction.update(docRef, {
-          webhookProcessing: true,
-          webhookProcessingBy: executionId,
-          webhookProcessingAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // Small delay within transaction
-        await new Promise(resolve => setTimeout(resolve, 500));
         
         // ATOMIC: Set multiple flags to prevent any possibility of duplication
         transaction.update(docRef, {
-          webhookProcessing: false,
           scheduledWebhookSent: true,
           scheduledWebhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
           webhookExecutionId: executionId,
@@ -103,9 +74,6 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
         functions.logger.info(`❌ Webhook flag was not set for delivery ${deliveryId}, skipping webhook send - Execution: ${executionId}`);
         return null;
       }
-      
-      // Additional delay before final verification
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // FINAL VERIFICATION: Re-read document to ensure flag is set
       const verifyDoc = await snap.ref.get();
@@ -127,12 +95,12 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       functions.logger.info(`🎯 All verifications passed, proceeding with webhook send - Execution: ${executionId}`);
       
       // Extract fields with sensible fallbacks
-      const customerName = verifyData.customerName || verifyData.clientName || '';
-      const customerPhone = verifyData.customerPhone || verifyData.destinationPhone || verifyData.phone || '';
-      const address = verifyData.address || verifyData.deliveryAddress || '';
-      const scheduledDateTime = verifyData.scheduledDateTime || verifyData.scheduledAt || `${verifyData.scheduledDate || ''} ${verifyData.scheduledTime || ''}`.trim();
-      const invoiceNumber = verifyData.invoiceNumber || verifyData.invoice || '';
-      const store = verifyData.store || verifyData.location || verifyData.originStore || '';
+      const customerName = deliveryData.customerName || deliveryData.clientName || '';
+      const customerPhone = deliveryData.customerPhone || deliveryData.destinationPhone || deliveryData.phone || '';
+      const address = deliveryData.address || deliveryData.deliveryAddress || '';
+      const scheduledDateTime = deliveryData.scheduledDateTime || deliveryData.scheduledAt || `${deliveryData.scheduledDate || ''} ${deliveryData.scheduledTime || ''}`.trim();
+      const invoiceNumber = deliveryData.invoiceNumber || deliveryData.invoice || '';
+      const store = deliveryData.store || deliveryData.location || deliveryData.originStore || '';
       
       // Validate required fields
       if (!customerPhone || !address || !scheduledDateTime) {
@@ -183,17 +151,6 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       }
       
     } catch (error) {
-      // Clean up processing flag on error
-      try {
-        await snap.ref.update({
-          webhookProcessing: false,
-          webhookProcessingError: error.message,
-          webhookProcessingErrorAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-      } catch (cleanupError) {
-        functions.logger.error(`❌ Error cleaning up processing flag for delivery ${deliveryId} - Execution: ${executionId}:`, cleanupError.message);
-      }
-      
       if (error.code === 'ECONNABORTED') {
         functions.logger.error(`⏰ Webhook timeout for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
       } else if (error.response) {
@@ -216,10 +173,33 @@ exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
     const beforeData = change.before.data();
     const afterData = change.after.data();
     
+    // Generate unique execution ID for this function run
+    const executionId = `${deliveryId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    functions.logger.info(`🔄 Status change function started - Execution ID: ${executionId}, Delivery: ${deliveryId}`);
+    
+    // Add delay to prevent race conditions
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     try {
-      // Check if status changed to "GETTING LOAD"
-      if (beforeData.status !== 'GETTING LOAD' && afterData.status === 'GETTING LOAD') {
-        functions.logger.info(`Status changed to GETTING LOAD for delivery ${deliveryId}`);
+      // Check if status changed to "GETTING LOAD" (case-insensitive)
+      const beforeStatus = (beforeData.status || '').toLowerCase().trim();
+      const afterStatus = (afterData.status || '').toLowerCase().trim();
+      
+      if (beforeStatus !== 'getting load' && afterStatus === 'getting load') {
+        functions.logger.info(`🚀 Status changed to GETTING LOAD for delivery ${deliveryId} - Execution: ${executionId}`);
+        
+        // Check if webhook was already sent for this status change
+        if (afterData.gettingLoadWebhookSent === true) {
+          functions.logger.info(`❌ GETTING LOAD webhook already sent for delivery ${deliveryId}, skipping - Execution: ${executionId}`);
+          return null;
+        }
+        
+        // Mark webhook as sent to prevent duplicates
+        await change.after.ref.update({
+          gettingLoadWebhookSent: true,
+          gettingLoadWebhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
+          gettingLoadWebhookExecutionId: executionId
+        });
         
         const webhookPayload = {
           firstName: afterData.clientName || afterData.customerName || '',
@@ -229,7 +209,7 @@ exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
           status: afterData.status || ''
         };
         
-        functions.logger.info(`Sending status change webhook for delivery ${deliveryId}`, webhookPayload);
+        functions.logger.info(`📤 Sending GETTING LOAD webhook for delivery ${deliveryId} - Execution: ${executionId}`, webhookPayload);
         
         const response = await axios.post('https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/e74a90fe-2813-4631-93e3-f3d0aaf27968', webhookPayload, {
           timeout: 8000,
@@ -239,21 +219,41 @@ exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
         });
         
         if (response.status >= 200 && response.status < 300) {
-          functions.logger.info(`Status change webhook sent successfully for delivery ${deliveryId}`);
+          functions.logger.info(`✅ GETTING LOAD webhook sent successfully for delivery ${deliveryId} - Execution: ${executionId}`);
+          
+          // Mark as successfully sent
+          await change.after.ref.update({
+            gettingLoadWebhookSentSuccessfully: true,
+            gettingLoadWebhookResponse: response.status
+          });
         } else {
-          functions.logger.error(`Status change webhook failed for delivery ${deliveryId}. Status: ${response.status}, Response:`, response.data);
+          functions.logger.error(`❌ GETTING LOAD webhook failed for delivery ${deliveryId}. Status: ${response.status} - Execution: ${executionId}`, response.data);
         }
+      } else {
+        functions.logger.info(`ℹ️ Status change detected but not GETTING LOAD (${beforeStatus} -> ${afterStatus}) for delivery ${deliveryId} - Execution: ${executionId}`);
       }
       
     } catch (error) {
+      // Clean up flag on error
+      try {
+        await change.after.ref.update({
+          gettingLoadWebhookSent: false,
+          gettingLoadWebhookError: error.message,
+          gettingLoadWebhookErrorAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (cleanupError) {
+        functions.logger.error(`❌ Error cleaning up webhook flag for delivery ${deliveryId} - Execution: ${executionId}:`, cleanupError.message);
+      }
+      
       if (error.code === 'ECONNABORTED') {
-        functions.logger.error(`Status change webhook timeout for delivery ${deliveryId}:`, error.message);
+        functions.logger.error(`⏰ GETTING LOAD webhook timeout for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
       } else if (error.response) {
-        functions.logger.error(`Status change webhook failed for delivery ${deliveryId}. Status: ${error.response.status}, Response:`, error.response.data);
+        functions.logger.error(`❌ GETTING LOAD webhook failed for delivery ${deliveryId}. Status: ${error.response.status} - Execution: ${executionId}`, error.response.data);
       } else {
-        functions.logger.error(`Error sending status change webhook for delivery ${deliveryId}:`, error.message);
+        functions.logger.error(`💥 Error sending GETTING LOAD webhook for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
       }
     }
     
+    functions.logger.info(`🏁 Status change function completed - Execution: ${executionId}`);
     return null;
   });
