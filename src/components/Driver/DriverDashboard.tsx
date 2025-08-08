@@ -347,7 +347,7 @@ export const DriverDashboard: React.FC = () => {
     });
   };
 
-  const handleStatusButtonClick = (delivery: Delivery) => {
+  const handleStatusButtonClick = async (delivery: Delivery) => {
     // Master Drivers cannot interact with status buttons
     if (isMasterDriver) {
       return;
@@ -385,8 +385,7 @@ export const DriverDashboard: React.FC = () => {
     // 2. Delivery is started by this driver - only they can progress
     if (notStarted || isOwner) {
       if (nextStatus !== currentStatus) {
-        await handleStatusUpdate(delivery, nextStatus, await loadTodaysDeliveries());
-}
+        await handleStatusUpdate(delivery, nextStatus);
 
   const handleUndoClick = (delivery: Delivery) => {
     // Master Drivers cannot undo status changes
