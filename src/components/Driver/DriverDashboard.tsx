@@ -814,5 +814,3 @@ export const DriverDashboard: React.FC = () => {
 </div>   // fecha a div principal do JSX do return
 );        // fecha o parêntese do return(
 };         // fecha a função DriverDashboard
-// (opcional) se você usa import default em outro lugar:
-export default DriverDashboard;
