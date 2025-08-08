@@ -17,62 +17,82 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
     const deliveryId = context.params.id;
     const deliveryData = snap.data();
     
-    // Early check: If webhook already sent, skip immediately
+    // Generate unique execution ID for this function run
+    const executionId = `${deliveryId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    functions.logger.info(`🚀 Function started - Execution ID: ${executionId}, Delivery: ${deliveryId}`);
+    
+    // CRITICAL: Early check - If webhook already sent, skip immediately
     if (deliveryData.scheduledWebhookSent === true) {
-      functions.logger.info(`Webhook already sent for delivery ${deliveryId}, skipping`);
+      functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId}, skipping - Execution: ${executionId}`);
       return null;
     }
     
     try {
-      // Pre-check: If status exists and is not PENDING (case-insensitive), skip
-      if (deliveryData.status && deliveryData.status.toLowerCase() !== 'pending') {
-        functions.logger.info(`Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook`);
+      // Pre-check: Only process PENDING deliveries
+      if (deliveryData.status && deliveryData.status !== 'PENDING') {
+        functions.logger.info(`❌ Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook - Execution: ${executionId}`);
         return null;
       }
       
-      // Use transaction to prevent duplicate sends
+      // CRITICAL: Use transaction with unique execution tracking
       let webhookShouldBeSent = false;
+      let transactionSuccess = false;
       
       await db.runTransaction(async (transaction) => {
-        // Re-read the document within the transaction
+        // Re-read the document within the transaction to get latest state
         const docRef = snap.ref;
         const freshDoc = await transaction.get(docRef);
         
         if (!freshDoc.exists) {
-          functions.logger.warn(`Document ${deliveryId} no longer exists, skipping webhook`);
+          functions.logger.warn(`❌ Document ${deliveryId} no longer exists, skipping webhook - Execution: ${executionId}`);
           return;
         }
         
         const freshData = freshDoc.data();
         
-        // Check again if webhook was already sent
+        // CRITICAL: Double-check if webhook was already sent (race condition protection)
         if (freshData.scheduledWebhookSent === true) {
-          functions.logger.info(`Webhook already sent for delivery ${deliveryId} (detected in transaction), skipping`);
+          functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId} (detected in transaction), skipping - Execution: ${executionId}`);
           return;
         }
         
-        // Set the flag before sending webhook
+        // ATOMIC: Set multiple flags to prevent any possibility of duplication
         transaction.update(docRef, {
           scheduledWebhookSent: true,
-          scheduledWebhookSentAt: admin.firestore.FieldValue.serverTimestamp()
+          scheduledWebhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
+          webhookExecutionId: executionId,
+          webhookProcessedBy: 'onDeliveryCreated_sendWebhook'
         });
         
         webhookShouldBeSent = true;
-        functions.logger.info(`Transaction completed: marked webhook as sent for delivery ${deliveryId}`);
+        transactionSuccess = true;
+        functions.logger.info(`✅ Transaction completed: marked webhook as sent for delivery ${deliveryId} - Execution: ${executionId}`);
       });
       
-      // Verify the flag was actually set before proceeding
-      if (!webhookShouldBeSent) {
-        functions.logger.info(`Webhook flag was not set for delivery ${deliveryId}, skipping webhook send`);
+      // Triple verification before sending webhook
+      if (!webhookShouldBeSent || !transactionSuccess) {
+        functions.logger.info(`❌ Webhook flag was not set for delivery ${deliveryId}, skipping webhook send - Execution: ${executionId}`);
         return null;
       }
       
-      // Double-check that the flag is actually set in the database
+      // FINAL VERIFICATION: Re-read document to ensure flag is set
       const verifyDoc = await snap.ref.get();
-      if (!verifyDoc.exists || verifyDoc.data().scheduledWebhookSent !== true) {
-        functions.logger.warn(`Webhook flag verification failed for delivery ${deliveryId}, skipping webhook send`);
+      const verifyData = verifyDoc.exists() ? verifyDoc.data() : {};
+      
+      if (!verifyDoc.exists || 
+          verifyData.scheduledWebhookSent !== true || 
+          verifyData.webhookExecutionId !== executionId) {
+        functions.logger.warn(`❌ Webhook flag verification failed for delivery ${deliveryId}, skipping webhook send - Execution: ${executionId}`);
+        functions.logger.warn(`Verification details:`, {
+          docExists: verifyDoc.exists(),
+          webhookSent: verifyData.scheduledWebhookSent,
+          executionId: executionId,
+          storedExecutionId: verifyData.webhookExecutionId
+        });
         return null;
       }
+      
+      functions.logger.info(`🎯 All verifications passed, proceeding with webhook send - Execution: ${executionId}`);
       
       // Extract fields with sensible fallbacks
       const customerName = deliveryData.customerName || deliveryData.clientName || '';
@@ -84,7 +104,7 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       
       // Validate required fields
       if (!customerPhone || !address || !scheduledDateTime) {
-        functions.logger.warn(`Missing required fields for delivery ${deliveryId}:`, {
+        functions.logger.warn(`❌ Missing required fields for delivery ${deliveryId} - Execution: ${executionId}:`, {
           customerPhone: !!customerPhone,
           address: !!address,
           scheduledDateTime: !!scheduledDateTime
@@ -101,10 +121,11 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
         address,
         scheduledDateTime,
         invoiceNumber,
-        store
+        store,
+        executionId // Add execution ID for tracking
       };
       
-      functions.logger.info(`Sending webhook for delivery ${deliveryId}`, webhookPayload);
+      functions.logger.info(`📤 Sending webhook for delivery ${deliveryId} - Execution: ${executionId}`, webhookPayload);
       
       // Send webhook using axios with 8s timeout
       const webhookUrl = 'https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/a7c21c87-6ac3-45db-9d67-7eab83d43ba1';
@@ -117,22 +138,30 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       });
       
       if (response.status >= 200 && response.status < 300) {
-        functions.logger.info(`Webhook sent successfully for delivery ${deliveryId}`);
+        functions.logger.info(`✅ Webhook sent successfully for delivery ${deliveryId} - Execution: ${executionId}`);
+        
+        // Mark webhook as successfully sent
+        await snap.ref.update({
+          webhookSentSuccessfully: true,
+          webhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
+          webhookResponse: response.status
+        });
       } else {
-        functions.logger.error(`Webhook failed for delivery ${deliveryId}. Status: ${response.status}, Response:`, response.data);
+        functions.logger.error(`❌ Webhook failed for delivery ${deliveryId}. Status: ${response.status} - Execution: ${executionId}`, response.data);
       }
       
     } catch (error) {
       if (error.code === 'ECONNABORTED') {
-        functions.logger.error(`Webhook timeout for delivery ${deliveryId}:`, error.message);
+        functions.logger.error(`⏰ Webhook timeout for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
       } else if (error.response) {
-        functions.logger.error(`Webhook failed for delivery ${deliveryId}. Status: ${error.response.status}, Response:`, error.response.data);
+        functions.logger.error(`❌ Webhook failed for delivery ${deliveryId}. Status: ${error.response.status} - Execution: ${executionId}`, error.response.data);
       } else {
-        functions.logger.error(`Error sending webhook for delivery ${deliveryId}:`, error.message);
+        functions.logger.error(`💥 Error sending webhook for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
       }
       // Do not retry automatically - just log the error
     }
     
+    functions.logger.info(`🏁 Function completed - Execution: ${executionId}`);
     return null;
   });
 
