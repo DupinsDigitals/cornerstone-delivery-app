@@ -16,6 +16,10 @@ export const DriverDashboard: React.FC = () => {
   const [lockedDeliveries, setLockedDeliveries] = useState<Set<string>>(new Set());
   const [selectedStore, setSelectedStore] = useState<'Framingham' | 'Marlborough'>('Framingham');
 
+  const toggleExpanded = (id: string) => {
+  setExpandedDeliveryId(prev => (prev === id ? null : id));
+};
+
   // Photo upload modal state
   const [photoModalState, setPhotoModalState] = useState<{
     deliveryId: string | null;
