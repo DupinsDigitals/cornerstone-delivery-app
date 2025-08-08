@@ -384,8 +384,10 @@ export const DriverDashboard: React.FC = () => {
     // 1. Delivery is not started (PENDING) - anyone can start
     // 2. Delivery is started by this driver - only they can progress
     if (notStarted || isOwner) {
-      if (nextStatus !== currentStatus) {
-        await handleStatusUpdate(delivery, nextStatus);
+  if (nextStatus !== currentStatus) {
+    await handleStatusUpdate(delivery, nextStatus); // ou passe a lista atualizada, ver nota abaixo
+  }
+}
 
   const handleUndoClick = (delivery: Delivery) => {
     // Master Drivers cannot undo status changes
