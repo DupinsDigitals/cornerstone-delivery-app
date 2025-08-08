@@ -1,6 +1,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const axios = require('axios');
+const axios = require('axios');
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -8,6 +9,95 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
+
+// Cloud Function that triggers when a new delivery document is created
+// This function is create-only and idempotent (won't send duplicate webhooks)
+exports.onDeliveryCreated_sendWebhook = functions.firestore
+  .document('deliveries/{id}')
+  .onCreate(async (snap, context) => {
+    const deliveryId = context.params.id;
+    const deliveryData = snap.data();
+    
+    try {
+      // Pre-check: If webhook already sent, skip
+      if (deliveryData.scheduledWebhookSent === true) {
+        functions.logger.info(`Webhook already sent for delivery ${deliveryId}, skipping`);
+        return null;
+      }
+      
+      // Pre-check: If status exists and is not PENDING, skip
+      if (deliveryData.status && deliveryData.status !== 'PENDING') {
+        functions.logger.info(`Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook`);
+        return null;
+      }
+      
+      // Extract fields with sensible fallbacks
+      const customerName = deliveryData.customerName || '';
+      const customerPhone = deliveryData.customerPhone || deliveryData.destinationPhone || deliveryData.phone || '';
+      const address = deliveryData.address || '';
+      const scheduledDateTime = deliveryData.scheduledDateTime || deliveryData.scheduledAt || '';
+      const invoiceNumber = deliveryData.invoiceNumber || deliveryData.invoice || '';
+      const store = deliveryData.store || deliveryData.location || '';
+      
+      // Validate required fields
+      if (!customerPhone || !address || !scheduledDateTime) {
+        functions.logger.warn(`Missing required fields for delivery ${deliveryId}:`, {
+          customerPhone: !!customerPhone,
+          address: !!address,
+          scheduledDateTime: !!scheduledDateTime
+        });
+        return null;
+      }
+      
+      // Prepare exact webhook payload
+      const webhookPayload = {
+        event: 'delivery_scheduled',
+        deliveryId,
+        customerName,
+        customerPhone,
+        address,
+        scheduledDateTime,
+        invoiceNumber,
+        store
+      };
+      
+      functions.logger.info(`Sending webhook for delivery ${deliveryId}`, webhookPayload);
+      
+      // Send webhook using axios with 8s timeout
+      const webhookUrl = 'https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/a7c21c87-6ac3-45db-9d67-7eab83d43ba1';
+      
+      const response = await axios.post(webhookUrl, webhookPayload, {
+        timeout: 8000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        // Update document to mark webhook as sent
+        await snap.ref.update({
+          scheduledWebhookSent: true,
+          scheduledWebhookSentAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        functions.logger.info(`Webhook sent successfully for delivery ${deliveryId}`);
+      } else {
+        functions.logger.error(`Webhook failed for delivery ${deliveryId}. Status: ${response.status}, Response:`, response.data);
+      }
+      
+    } catch (error) {
+      if (error.code === 'ECONNABORTED') {
+        functions.logger.error(`Webhook timeout for delivery ${deliveryId}:`, error.message);
+      } else if (error.response) {
+        functions.logger.error(`Webhook failed for delivery ${deliveryId}. Status: ${error.response.status}, Response:`, error.response.data);
+      } else {
+        functions.logger.error(`Error sending webhook for delivery ${deliveryId}:`, error.message);
+      }
+      // Do not retry automatically - just log the error
+    }
+    
+    return null;
+  });
 
 // Cloud Function that triggers when a new delivery document is created
 exports.onDeliveryCreated_sendWebhook = functions.firestore
