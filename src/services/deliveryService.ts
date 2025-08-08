@@ -257,3 +257,24 @@ exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
     functions.logger.info(`🏁 Status change function completed - Execution: ${executionId}`);
     return null;
   });
+
+// Delete delivery from Firestore
+exports.deleteDeliveryFromFirestore = functions.https.onCall(async (data, context) => {
+  try {
+    const { deliveryId } = data;
+    
+    if (!deliveryId) {
+      throw new functions.https.HttpsError('invalid-argument', 'Delivery ID is required');
+    }
+    
+    const deliveryRef = db.collection('deliveries').doc(deliveryId);
+    await deliveryRef.delete();
+    
+    return { success: true };
+  } catch (error) {
+    functions.logger.error('Error deleting delivery from Firestore:', error);
+    throw new functions.https.HttpsError('internal', 
+      error instanceof Error ? error.message : 'Unknown error occurred'
+    );
+  }
+});
