@@ -9,6 +9,22 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// Delete delivery from Firestore
+export const deleteDeliveryFromFirestore = async (deliveryId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const deliveryRef = doc(db, DELIVERIES_COLLECTION, deliveryId);
+    await deleteDoc(deliveryRef);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting delivery from Firestore:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete delivery'
+    };
+  }
+};
+
 // Cloud Function that triggers when a new delivery document is created
 // This function is create-only and idempotent (won't send duplicate webhooks)
 exports.onDeliveryCreated_sendWebhook = functions.firestore
@@ -255,61 +271,5 @@ exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
     }
     
     functions.logger.info(`🏁 Status change function completed - Execution: ${executionId}`);
-    return null;
-  });
-
-// Cloud Function that triggers when a delivery document is deleted
-exports.onDeliveryDeleted_sendWebhook = functions.firestore
-  .document('deliveries/{id}')
-  .onDelete(async (snap, context) => {
-    const deliveryId = context.params.id;
-    const deliveryData = snap.data();
-    
-    // Generate unique execution ID for this function run
-    const executionId = `${deliveryId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    functions.logger.info(`🗑️ Delivery deleted function started - Execution ID: ${executionId}, Delivery: ${deliveryId}`);
-    
-    try {
-      // Prepare webhook payload for deletion
-      const webhookPayload = {
-        event: 'delivery_deleted',
-        deliveryId,
-        customerName: deliveryData.customerName || deliveryData.clientName || '',
-        customerPhone: deliveryData.customerPhone || deliveryData.destinationPhone || deliveryData.phone || '',
-        address: deliveryData.address || deliveryData.deliveryAddress || '',
-        invoiceNumber: deliveryData.invoiceNumber || deliveryData.invoice || '',
-        store: deliveryData.store || deliveryData.location || deliveryData.originStore || '',
-        executionId
-      };
-      
-      functions.logger.info(`📤 Sending deletion webhook for delivery ${deliveryId} - Execution: ${executionId}`, webhookPayload);
-      
-      // Send webhook using axios with 8s timeout
-      const webhookUrl = 'https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/a7c21c87-6ac3-45db-9d67-7eab83d43ba1';
-      
-      const response = await axios.post(webhookUrl, webhookPayload, {
-        timeout: 8000,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.status >= 200 && response.status < 300) {
-        functions.logger.info(`✅ Deletion webhook sent successfully for delivery ${deliveryId} - Execution: ${executionId}`);
-      } else {
-        functions.logger.error(`❌ Deletion webhook failed for delivery ${deliveryId}. Status: ${response.status} - Execution: ${executionId}`, response.data);
-      }
-      
-    } catch (error) {
-      if (error.code === 'ECONNABORTED') {
-        functions.logger.error(`⏰ Deletion webhook timeout for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
-      } else if (error.response) {
-        functions.logger.error(`❌ Deletion webhook failed for delivery ${deliveryId}. Status: ${error.response.status} - Execution: ${executionId}`, error.response.data);
-      } else {
-        functions.logger.error(`💥 Error sending deletion webhook for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
-      }
-    }
-    
-    functions.logger.info(`🏁 Deletion function completed - Execution: ${executionId}`);
     return null;
   });
