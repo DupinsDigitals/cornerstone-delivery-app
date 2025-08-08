@@ -801,7 +801,7 @@ export const DriverDashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Photo Upload Modal */}
+{ /* Photo Upload Modal */ }
 {photoModalState.isOpen && (
   <PhotoUploadModal
     deliveryId={photoModalState.deliveryId!}
@@ -811,7 +811,8 @@ export const DriverDashboard: React.FC = () => {
     onUpload={handleMultiplePhotoUpload}
   />
 )}
-      </div>
-);
-};
-  
+</div>   // fecha a div principal do JSX do return
+);        // fecha o parêntese do return(
+};         // fecha a função DriverDashboard
+// (opcional) se você usa import default em outro lugar:
+export default DriverDashboard;
