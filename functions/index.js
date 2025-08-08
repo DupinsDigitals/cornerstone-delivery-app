@@ -119,3 +119,53 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
     
     return null;
   });
+
+// Cloud Function that triggers when delivery status changes to "GETTING LOAD"
+exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
+  .document('deliveries/{id}')
+  .onUpdate(async (change, context) => {
+    const deliveryId = context.params.id;
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+    
+    try {
+      // Check if status changed to "GETTING LOAD"
+      if (beforeData.status !== 'GETTING LOAD' && afterData.status === 'GETTING LOAD') {
+        functions.logger.info(`Status changed to GETTING LOAD for delivery ${deliveryId}`);
+        
+        const webhookPayload = {
+          firstName: afterData.clientName || afterData.customerName || '',
+          phone: afterData.phone || afterData.customerPhone || '',
+          address: afterData.address || afterData.deliveryAddress || '',
+          invoice: afterData.invoiceNumber || '',
+          status: afterData.status || ''
+        };
+        
+        functions.logger.info(`Sending status change webhook for delivery ${deliveryId}`, webhookPayload);
+        
+        const response = await axios.post('https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/e74a90fe-2813-4631-93e3-f3d0aaf27968', webhookPayload, {
+          timeout: 8000,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.status >= 200 && response.status < 300) {
+          functions.logger.info(`Status change webhook sent successfully for delivery ${deliveryId}`);
+        } else {
+          functions.logger.error(`Status change webhook failed for delivery ${deliveryId}. Status: ${response.status}, Response:`, response.data);
+        }
+      }
+      
+    } catch (error) {
+      if (error.code === 'ECONNABORTED') {
+        functions.logger.error(`Status change webhook timeout for delivery ${deliveryId}:`, error.message);
+      } else if (error.response) {
+        functions.logger.error(`Status change webhook failed for delivery ${deliveryId}. Status: ${error.response.status}, Response:`, error.response.data);
+      } else {
+        functions.logger.error(`Error sending status change webhook for delivery ${deliveryId}:`, error.message);
+      }
+    }
+    
+    return null;
+  });
