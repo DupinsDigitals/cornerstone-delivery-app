@@ -24,13 +24,15 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
     }
     
     try {
-      // Pre-check: If status exists and is not PENDING, skip
+      // Pre-check: If status exists and is not PENDING (case-insensitive), skip
       if (deliveryData.status && deliveryData.status.toLowerCase() !== 'pending') {
         functions.logger.info(`Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook`);
         return null;
       }
       
       // Use transaction to prevent duplicate sends
+      let webhookShouldBeSent = false;
+      
       await db.runTransaction(async (transaction) => {
         // Re-read the document within the transaction
         const docRef = snap.ref;
@@ -55,8 +57,22 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
           scheduledWebhookSentAt: admin.firestore.FieldValue.serverTimestamp()
         });
         
+        webhookShouldBeSent = true;
         functions.logger.info(`Transaction completed: marked webhook as sent for delivery ${deliveryId}`);
       });
+      
+      // Verify the flag was actually set before proceeding
+      if (!webhookShouldBeSent) {
+        functions.logger.info(`Webhook flag was not set for delivery ${deliveryId}, skipping webhook send`);
+        return null;
+      }
+      
+      // Double-check that the flag is actually set in the database
+      const verifyDoc = await snap.ref.get();
+      if (!verifyDoc.exists || verifyDoc.data().scheduledWebhookSent !== true) {
+        functions.logger.warn(`Webhook flag verification failed for delivery ${deliveryId}, skipping webhook send`);
+        return null;
+      }
       
       // Extract fields with sensible fallbacks
       const customerName = deliveryData.customerName || deliveryData.clientName || '';
