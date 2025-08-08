@@ -385,7 +385,7 @@ export const DriverDashboard: React.FC = () => {
     // 2. Delivery is started by this driver - only they can progress
     if (notStarted || isOwner) {
       if (nextStatus !== currentStatus) {
-await handleStatusUpdate(delivery, nextStatus, await loadTodaysDeliveries());
+        await handleStatusUpdate(delivery, nextStatus, await loadTodaysDeliveries());
 }
 
   const handleUndoClick = (delivery: Delivery) => {
