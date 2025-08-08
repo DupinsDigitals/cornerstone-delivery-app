@@ -145,9 +145,10 @@ export const DriverDashboard: React.FC = () => {
           
           return minutesA - minutesB;
         });
-        
+
         setDeliveries(sortedDeliveries);
         console.log(`📱 Driver Dashboard - Loaded ${sortedDeliveries.length} deliveries for ${storeToLoad} on ${todayDate} (all trucks)`);
+        return sortedDeliveries;
       } else {
         console.error('Failed to load deliveries:', result.error);
         setDeliveries([]);
@@ -384,10 +385,9 @@ export const DriverDashboard: React.FC = () => {
     // 2. Delivery is started by this driver - only they can progress
     if (notStarted || isOwner) {
       if (nextStatus !== currentStatus) {
-        handleStatusUpdate(delivery, nextStatus);
-      }
-    }
-  };
+    const updatedDeliveries = await loadTodaysDeliveries();
+    await handleStatusUpdate(delivery, nextStatus, updatedDeliveries);
+}
 
   const handleUndoClick = (delivery: Delivery) => {
     // Master Drivers cannot undo status changes
@@ -399,7 +399,7 @@ export const DriverDashboard: React.FC = () => {
     if (lockedDeliveries.has(delivery.id)) {
       return; // Silently ignore if locked
     }
-
+    
     const isOwner = delivery.startedBy === user?.email;
     const currentStatus = delivery.status;
     
