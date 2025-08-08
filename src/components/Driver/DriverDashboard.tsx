@@ -811,6 +811,7 @@ export const DriverDashboard: React.FC = () => {
     onUpload={handleMultiplePhotoUpload}
   />
 )}
+    </div>
 </div>   // fecha a div principal do JSX do return
 );        // fecha o parêntese do return(
 };         // fecha a função DriverDashboard
