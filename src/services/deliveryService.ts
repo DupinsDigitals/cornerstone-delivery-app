@@ -1,315 +1,171 @@
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  serverTimestamp,
-  writeBatch
-} from 'firebase/firestore';
-import { 
-  ref, 
-  uploadBytes, 
-  getDownloadURL 
-} from 'firebase/storage';
-import { db, storage } from '../config/firebase';
-import { Delivery } from '../types/delivery';
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const axios = require('axios');
 
-// Get all deliveries from Firestore
-export const getDeliveriesFromFirestore = async (): Promise<{
-  success: boolean;
-  deliveries?: Delivery[];
-  error?: string;
-}> => {
-  try {
-    const deliveriesRef = collection(db, 'deliveries');
-    const querySnapshot = await getDocs(deliveriesRef);
-    
-    const deliveries: Delivery[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      deliveries.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
-        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
-        claimedAt: data.claimedAt?.toDate?.()?.toISOString() || data.claimedAt,
-        completedAt: data.completedAt?.toDate?.()?.toISOString() || data.completedAt,
-        scheduledWebhookSentAt: data.scheduledWebhookSentAt?.toDate?.()?.toISOString() || data.scheduledWebhookSentAt
-      } as Delivery);
-    });
-    
-    return {
-      success: true,
-      deliveries
-    };
-  } catch (error) {
-    console.error('Error fetching deliveries from Firestore:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
-// Save delivery to Firestore
-export const saveDeliveryToFirestore = async (delivery: Delivery): Promise<{
-  success: boolean;
-  id?: string;
-  error?: string;
-}> => {
-  try {
-    const deliveriesRef = collection(db, 'deliveries');
-    
-    // Prepare delivery data
-    const deliveryData = {
-      ...delivery,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
-    
-    // Remove the id field before saving (Firestore will generate it)
-    const { id, ...dataToSave } = deliveryData;
-    
-    const docRef = await addDoc(deliveriesRef, dataToSave);
-    
-    return {
-      success: true,
-      id: docRef.id
-    };
-  } catch (error) {
-    console.error('Error saving delivery to Firestore:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
+const db = admin.firestore();
 
-// Update delivery in Firestore
-export const updateDeliveryInFirestore = async (deliveryId: string, updates: Partial<Delivery>): Promise<{
-  success: boolean;
-  error?: string;
-}> => {
-  try {
-    const deliveryRef = doc(db, 'deliveries', deliveryId);
+// Cloud Function that triggers when a new delivery document is created
+// This function is create-only and idempotent (won't send duplicate webhooks)
+exports.onDeliveryCreated_sendWebhook = functions.firestore
+  .document('deliveries/{id}')
+  .onCreate(async (snap, context) => {
+    const deliveryId = context.params.id;
+    const deliveryData = snap.data();
     
-    const updateData = {
-      ...updates,
-      updatedAt: serverTimestamp()
-    };
-    
-    await updateDoc(deliveryRef, updateData);
-    
-    return {
-      success: true
-    };
-  } catch (error) {
-    console.error('Error updating delivery in Firestore:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
-
-// Delete delivery from Firestore
-export const deleteDeliveryFromFirestore = async (deliveryId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> => {
-  try {
-    const deliveryRef = doc(db, 'deliveries', deliveryId);
-    await deleteDoc(deliveryRef);
-    
-    return {
-      success: true
-    };
-  } catch (error) {
-    console.error('Error deleting delivery from Firestore:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
-
-// Update delivery status
-export const updateDeliveryStatus = async (
-  deliveryId: string, 
-  newStatus: string, 
-  additionalData?: any
-): Promise<{
-  success: boolean;
-  error?: string;
-}> => {
-  try {
-    const deliveryRef = doc(db, 'deliveries', deliveryId);
-    
-    // Get current delivery data to check ownership
-    const deliveryDoc = await getDoc(deliveryRef);
-    if (!deliveryDoc.exists()) {
-      return {
-        success: false,
-        error: 'Delivery not found'
-      };
+    // Early check: If webhook already sent, skip immediately
+    if (deliveryData.scheduledWebhookSent === true) {
+      functions.logger.info(`Webhook already sent for delivery ${deliveryId}, skipping`);
+      return null;
     }
     
-    const currentData = deliveryDoc.data();
-    
-    // Prepare update data
-    const updateData = {
-      status: newStatus,
-      updatedAt: serverTimestamp(),
-      ...additionalData
-    };
-    
-    // Add edit history entry
-    const editHistoryEntry = {
-      action: 'status_changed',
-      editedAt: new Date().toISOString(),
-      editedBy: additionalData?.editedBy || additionalData?.lastUpdatedBy || 'Unknown',
-      editedByName: additionalData?.editedByName || additionalData?.lastUpdatedByName || 'Unknown User',
-      changes: `Status changed from ${currentData.status || 'Unknown'} to ${newStatus}`
-    };
-    
-    // Add to edit history
-    const currentHistory = currentData.editHistory || [];
-    updateData.editHistory = [...currentHistory, editHistoryEntry];
-    
-    await updateDoc(deliveryRef, updateData);
-    
-    return {
-      success: true
-    };
-  } catch (error) {
-    console.error('Error updating delivery status:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
-
-// Get today's deliveries for a specific store
-export const getTodaysDeliveriesForStore = async (
-  store: string, 
-  date: string
-): Promise<{
-  success: boolean;
-  deliveries?: Delivery[];
-  error?: string;
-}> => {
-  try {
-    const deliveriesRef = collection(db, 'deliveries');
-    const q = query(
-      deliveriesRef,
-      where('originStore', '==', store),
-      where('scheduledDate', '==', date),
-      orderBy('scheduledTime', 'asc')
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    const deliveries: Delivery[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      deliveries.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
-        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
-        claimedAt: data.claimedAt?.toDate?.()?.toISOString() || data.claimedAt,
-        completedAt: data.completedAt?.toDate?.()?.toISOString() || data.completedAt,
-        scheduledWebhookSentAt: data.scheduledWebhookSentAt?.toDate?.()?.toISOString() || data.scheduledWebhookSentAt
-      } as Delivery);
-    });
-    
-    return {
-      success: true,
-      deliveries
-    };
-  } catch (error) {
-    console.error('Error fetching today\'s deliveries:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
-
-// Upload delivery photos to Firebase Storage
-export const uploadDeliveryPhotos = async (
-  deliveryId: string, 
-  files: File[]
-): Promise<{
-  success: boolean;
-  photoUrls?: string[];
-  error?: string;
-}> => {
-  try {
-    const photoUrls: string[] = [];
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const timestamp = Date.now();
-      const fileName = `delivery-${deliveryId}-${timestamp}-${i + 1}.jpg`;
-      const storageRef = ref(storage, `delivery-photos/${fileName}`);
+    try {
+      // Pre-check: If status exists and is not PENDING, skip
+      if (deliveryData.status && deliveryData.status !== 'PENDING') {
+        functions.logger.info(`Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook`);
+        return null;
+      }
       
-      // Upload file
-      const snapshot = await uploadBytes(storageRef, file);
-      
-      // Get download URL
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      photoUrls.push(downloadURL);
-    }
-    
-    return {
-      success: true,
-      photoUrls
-    };
-  } catch (error) {
-    console.error('Error uploading delivery photos:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
-
-// Batch update multiple deliveries
-export const batchUpdateDeliveries = async (
-  updates: Array<{ id: string; data: Partial<Delivery> }>
-): Promise<{
-  success: boolean;
-  error?: string;
-}> => {
-  try {
-    const batch = writeBatch(db);
-    
-    updates.forEach(({ id, data }) => {
-      const deliveryRef = doc(db, 'deliveries', id);
-      batch.update(deliveryRef, {
-        ...data,
-        updatedAt: serverTimestamp()
+      // Use transaction to prevent duplicate sends
+      await db.runTransaction(async (transaction) => {
+        // Re-read the document within the transaction
+        const docRef = snap.ref;
+        const freshDoc = await transaction.get(docRef);
+        
+        if (!freshDoc.exists) {
+          functions.logger.warn(`Document ${deliveryId} no longer exists, skipping webhook`);
+          return;
+        }
+        
+        const freshData = freshDoc.data();
+        
+        // Check again if webhook was already sent
+        if (freshData.scheduledWebhookSent === true) {
+          functions.logger.info(`Webhook already sent for delivery ${deliveryId} (detected in transaction), skipping`);
+          return;
+        }
+        
+        // Set the flag before sending webhook
+        transaction.update(docRef, {
+          scheduledWebhookSent: true,
+          scheduledWebhookSentAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        functions.logger.info(`Transaction completed: marked webhook as sent for delivery ${deliveryId}`);
       });
-    });
+      
+      // Extract fields with sensible fallbacks
+      const customerName = deliveryData.customerName || deliveryData.clientName || '';
+      const customerPhone = deliveryData.customerPhone || deliveryData.destinationPhone || deliveryData.phone || '';
+      const address = deliveryData.address || deliveryData.deliveryAddress || '';
+      const scheduledDateTime = deliveryData.scheduledDateTime || deliveryData.scheduledAt || `${deliveryData.scheduledDate || ''} ${deliveryData.scheduledTime || ''}`.trim();
+      const invoiceNumber = deliveryData.invoiceNumber || deliveryData.invoice || '';
+      const store = deliveryData.store || deliveryData.location || deliveryData.originStore || '';
+      
+      // Validate required fields
+      if (!customerPhone || !address || !scheduledDateTime) {
+        functions.logger.warn(`Missing required fields for delivery ${deliveryId}:`, {
+          customerPhone: !!customerPhone,
+          address: !!address,
+          scheduledDateTime: !!scheduledDateTime
+        });
+        return null;
+      }
+      
+      // Prepare exact webhook payload
+      const webhookPayload = {
+        event: 'delivery_scheduled',
+        deliveryId,
+        customerName,
+        customerPhone,
+        address,
+        scheduledDateTime,
+        invoiceNumber,
+        store
+      };
+      
+      functions.logger.info(`Sending webhook for delivery ${deliveryId}`, webhookPayload);
+      
+      // Send webhook using axios with 8s timeout
+      const webhookUrl = 'https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/a7c21c87-6ac3-45db-9d67-7eab83d43ba1';
+      
+      const response = await axios.post(webhookUrl, webhookPayload, {
+        timeout: 8000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        functions.logger.info(`Webhook sent successfully for delivery ${deliveryId}`);
+      } else {
+        functions.logger.error(`Webhook failed for delivery ${deliveryId}. Status: ${response.status}, Response:`, response.data);
+      }
+      
+    } catch (error) {
+      if (error.code === 'ECONNABORTED') {
+        functions.logger.error(`Webhook timeout for delivery ${deliveryId}:`, error.message);
+      } else if (error.response) {
+        functions.logger.error(`Webhook failed for delivery ${deliveryId}. Status: ${error.response.status}, Response:`, error.response.data);
+      } else {
+        functions.logger.error(`Error sending webhook for delivery ${deliveryId}:`, error.message);
+      }
+      // Do not retry automatically - just log the error
+    }
     
-    await batch.commit();
+    return null;
+  });
+
+// Cloud Function that triggers when delivery status changes to "GETTING LOAD"
+exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
+  .document('deliveries/{id}')
+  .onUpdate(async (change, context) => {
+    const deliveryId = context.params.id;
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
     
-    return {
-      success: true
-    };
-  } catch (error) {
-    console.error('Error batch updating deliveries:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
+    try {
+      // Check if status changed to "GETTING LOAD"
+      if (beforeData.status !== 'GETTING LOAD' && afterData.status === 'GETTING LOAD') {
+        functions.logger.info(`Status changed to GETTING LOAD for delivery ${deliveryId}`);
+        
+        const webhookPayload = {
+          firstName: afterData.clientName || afterData.customerName || '',
+          phone: afterData.phone || afterData.customerPhone || '',
+          address: afterData.address || afterData.deliveryAddress || '',
+          invoice: afterData.invoiceNumber || '',
+          status: afterData.status || ''
+        };
+        
+        functions.logger.info(`Sending status change webhook for delivery ${deliveryId}`, webhookPayload);
+        
+        const response = await axios.post('https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/e74a90fe-2813-4631-93e3-f3d0aaf27968', webhookPayload, {
+          timeout: 8000,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.status >= 200 && response.status < 300) {
+          functions.logger.info(`Status change webhook sent successfully for delivery ${deliveryId}`);
+        } else {
+          functions.logger.error(`Status change webhook failed for delivery ${deliveryId}. Status: ${response.status}, Response:`, response.data);
+        }
+      }
+      
+    } catch (error) {
+      if (error.code === 'ECONNABORTED') {
+        functions.logger.error(`Status change webhook timeout for delivery ${deliveryId}:`, error.message);
+      } else if (error.response) {
+        functions.logger.error(`Status change webhook failed for delivery ${deliveryId}. Status: ${error.response.status}, Response:`, error.response.data);
+      } else {
+        functions.logger.error(`Error sending status change webhook for delivery ${deliveryId}:`, error.message);
+      }
+    }
+    
+    return null;
+  });
