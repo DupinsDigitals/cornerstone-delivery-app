@@ -792,6 +792,71 @@ export const DriverDashboard: React.FC = () => {
                             {renderStatusButton(delivery)}
                           </div>
                         </div>
+
+                        {/* Proof of Delivery Photos - Show after completion */}
+                        {delivery.status === 'COMPLETE' && ((delivery.photoUrls && delivery.photoUrls.length > 0) || delivery.photoUrl) && (
+                          <div className="pt-3 border-t">
+                            <div className="flex items-start">
+                              <div className="w-4 h-4 text-gray-400 mr-2 mt-0.5">📸</div>
+                              <div className="flex-1">
+                                <span className="font-medium text-gray-700">Proof of Delivery:</span>
+                                <div className="mt-2">
+                                  {/* Display multiple photos if available, otherwise fall back to single photo */}
+                                  {delivery.photoUrls && delivery.photoUrls.length > 0 ? (
+                                    <div className="space-y-2">
+                                      <p className="text-xs text-gray-600">{delivery.photoUrls.length} photo{delivery.photoUrls.length > 1 ? 's' : ''} uploaded</p>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        {delivery.photoUrls.map((photoUrl, index) => (
+                                          <a
+                                            key={index}
+                                            href={photoUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-block"
+                                            title={`Click to view photo ${index + 1} full-size`}
+                                          >
+                                            <img
+                                              src={photoUrl}
+                                              alt={`Proof of Delivery ${index + 1}`}
+                                              className="w-full h-20 object-cover rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                              onError={(e) => {
+                                                console.error(`Failed to load delivery photo ${index + 1}:`, photoUrl);
+                                                e.currentTarget.style.display = 'none';
+                                              }}
+                                            />
+                                          </a>
+                                        ))}
+                                      </div>
+                                      <p className="text-xs text-gray-500">Click any photo to view full size</p>
+                                    </div>
+                                  ) : delivery.photoUrl ? (
+                                    // Legacy single photo display
+                                    <div>
+                                      <a
+                                        href={delivery.photoUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-block"
+                                        title="Click to view full-size image"
+                                      >
+                                        <img
+                                          src={delivery.photoUrl}
+                                          alt="Proof of Delivery"
+                                          className="max-w-[150px] h-auto object-cover rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                          onError={(e) => {
+                                            console.error('Failed to load delivery photo:', delivery.photoUrl);
+                                            e.currentTarget.style.display = 'none';
+                                          }}
+                                        />
+                                      </a>
+                                      <p className="text-xs text-gray-500 mt-1">Click to view full size</p>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
