@@ -812,5 +812,6 @@ export const DriverDashboard: React.FC = () => {
           onUpload={handleMultiplePhotoUpload}
         />
       )}
+    </div>
   );
 };
