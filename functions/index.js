@@ -18,18 +18,46 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
     const deliveryId = context.params.id;
     const deliveryData = snap.data();
     
+    // Early check: If webhook already sent, skip immediately
+    if (deliveryData.scheduledWebhookSent === true) {
+      functions.logger.info(`Webhook already sent for delivery ${deliveryId}, skipping`);
+      return null;
+    }
+    
     try {
-      // Pre-check: If webhook already sent, skip
-      if (deliveryData.scheduledWebhookSent === true) {
-        functions.logger.info(`Webhook already sent for delivery ${deliveryId}, skipping`);
-        return null;
-      }
-      
       // Pre-check: If status exists and is not PENDING, skip
       if (deliveryData.status && deliveryData.status !== 'PENDING') {
         functions.logger.info(`Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook`);
         return null;
       }
+      
+      // Use transaction to prevent duplicate sends
+      await db.runTransaction(async (transaction) => {
+        // Re-read the document within the transaction
+        const docRef = snap.ref;
+        const freshDoc = await transaction.get(docRef);
+        
+        if (!freshDoc.exists) {
+          functions.logger.warn(`Document ${deliveryId} no longer exists, skipping webhook`);
+          return;
+        }
+        
+        const freshData = freshDoc.data();
+        
+        // Check again if webhook was already sent
+        if (freshData.scheduledWebhookSent === true) {
+          functions.logger.info(`Webhook already sent for delivery ${deliveryId} (detected in transaction), skipping`);
+          return;
+        }
+        
+        // Set the flag before sending webhook
+        transaction.update(docRef, {
+          scheduledWebhookSent: true,
+          scheduledWebhookSentAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        functions.logger.info(`Transaction completed: marked webhook as sent for delivery ${deliveryId}`);
+      });
       
       // Extract fields with sensible fallbacks
       const customerName = deliveryData.customerName || '';
@@ -74,12 +102,6 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       });
       
       if (response.status >= 200 && response.status < 300) {
-        // Update document to mark webhook as sent
-        await snap.ref.update({
-          scheduledWebhookSent: true,
-          scheduledWebhookSentAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        
         functions.logger.info(`Webhook sent successfully for delivery ${deliveryId}`);
       } else {
         functions.logger.error(`Webhook failed for delivery ${deliveryId}. Status: ${response.status}, Response:`, response.data);
