@@ -456,7 +456,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
               onChange={(e) => handleInputChange('truckType', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
             >
-              {TRUCK_TYPES[formData.originStore as keyof typeof TRUCK_TYPES]?.map((truck) => (
+              {(TRUCK_TYPES[formData.originStore as keyof typeof TRUCK_TYPES] || []).map((truck) => (
                 <option key={truck} value={truck}>
                   {truck}
                 </option>

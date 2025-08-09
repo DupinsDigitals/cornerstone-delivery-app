@@ -480,11 +480,11 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
 
     const allTruckTypes = [
       { store: 'Framingham', type: 'Flatbed', color: '#ed1c25' },           // Red
-      { store: 'Framingham', type: '10 Wheeler (10 tons)', color: '#fff204' }, // Yellow
+      { store: 'Framingham', type: '6 Wheeler Dump (10 tons)', color: '#fff204' }, // Yellow
       { store: 'Framingham', type: 'Triaxle (22 tons)', color: '#ff7f27' },    // Orange
-      { store: 'Framingham', type: 'Rolloff', color: '#22b14c' },              // Green
+      { store: 'Framingham', type: 'Roll Off', color: '#22b14c' },              // Green
       { store: 'Marlborough', type: 'Flatbed', color: '#303bcd' },             // Dark Blue
-      { store: 'Marlborough', type: '10 Wheeler (10 tons)', color: '#ffafc9' }, // Pink
+      { store: 'Marlborough', type: '6 Wheeler Dump (10 tons)', color: '#ffafc9' }, // Pink
       { store: 'Marlborough', type: 'Triaxle (22 tons)', color: '#04a1e8' }     // Light Blue
     ];
 
