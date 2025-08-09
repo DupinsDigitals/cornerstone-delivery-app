@@ -259,6 +259,8 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
   const calculateDeliveryPositions = (dayDeliveries: Delivery[]): DeliveryPosition[] => {
     // Group deliveries by truck type, handling time overlaps
     const truckColumns: { [key: string]: Delivery[][] } = {};
+    // Global columns array to track all columns across all trucks
+    const allColumns: Delivery[][] = [];
     
     // Helper function to check if two deliveries overlap in time
     const doDeliveriesOverlap = (delivery1: Delivery, delivery2: Delivery): boolean => {
@@ -313,67 +315,89 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
     dayDeliveries.forEach(delivery => {
       const truckKey = `${delivery.originStore}-${delivery.truckType}`;
       
-      if (!truckColumns[truckKey]) {
-        truckColumns[truckKey] = [];
-      }
-      
-      // Find a column where this delivery doesn't overlap with existing ones
       let placedInColumn = false;
       
-      for (let columnIndex = 0; columnIndex < truckColumns[truckKey].length; columnIndex++) {
-        const column = truckColumns[truckKey][columnIndex];
-        let hasOverlap = false;
-        
-        // Check if this delivery overlaps with any delivery in this column
-        for (const existingDelivery of column) {
-          if (doDeliveriesOverlap(delivery, existingDelivery)) {
-            hasOverlap = true;
+      // FIRST: Try to place in same truck columns (preferred)
+      if (truckColumns[truckKey]) {
+        for (let columnIndex = 0; columnIndex < truckColumns[truckKey].length; columnIndex++) {
+          const column = truckColumns[truckKey][columnIndex];
+          let hasOverlap = false;
+          
+          // Check if this delivery overlaps with any delivery in this column
+          for (const existingDelivery of column) {
+            if (doDeliveriesOverlap(delivery, existingDelivery)) {
+              hasOverlap = true;
+              break;
+            }
+          }
+          
+          // If no overlap, place it in this column
+          if (!hasOverlap) {
+            column.push(delivery);
+            placedInColumn = true;
             break;
           }
         }
-        
-        // If no overlap, place it in this column
-        if (!hasOverlap) {
-          column.push(delivery);
-          placedInColumn = true;
-          break;
+      }
+      
+      // SECOND: If not placed, try ALL existing columns from any truck
+      if (!placedInColumn) {
+        for (let columnIndex = 0; columnIndex < allColumns.length; columnIndex++) {
+          const column = allColumns[columnIndex];
+          let hasOverlap = false;
+          
+          // Check if this delivery overlaps with any delivery in this column
+          for (const existingDelivery of column) {
+            if (doDeliveriesOverlap(delivery, existingDelivery)) {
+              hasOverlap = true;
+              break;
+            }
+          }
+          
+          // If no overlap, place it in this column
+          if (!hasOverlap) {
+            column.push(delivery);
+            placedInColumn = true;
+            
+            // Also add to truck-specific tracking
+            if (!truckColumns[truckKey]) {
+              truckColumns[truckKey] = [];
+            }
+            // Note: We don't add to truckColumns[truckKey] because it's in a different truck's column
+            break;
+          }
         }
       }
       
-      // If couldn't place in existing columns, create a new column
+      // LAST RESORT: Create a new column
       if (!placedInColumn) {
-        truckColumns[truckKey].push([delivery]);
+        const newColumn = [delivery];
+        allColumns.push(newColumn);
+        
+        // Also track in truck-specific columns
+        if (!truckColumns[truckKey]) {
+          truckColumns[truckKey] = [];
+        }
+        truckColumns[truckKey].push(newColumn);
+        
+        console.log(`📊 Created new column for ${delivery.clientName} (${truckKey}) - Total columns: ${allColumns.length}`);
+      } else {
+        console.log(`📊 Placed ${delivery.clientName} in existing column - Total columns: ${allColumns.length}`);
       }
     });
 
     // Sort deliveries within each column by scheduled time
-    Object.keys(truckColumns).forEach(truckKey => {
-      truckColumns[truckKey].forEach(column => {
-        column.sort((a, b) => {
-          return timeToMinutes(a.scheduledTime) - timeToMinutes(b.scheduledTime);
-        });
+    allColumns.forEach(column => {
+      column.sort((a, b) => {
+        return timeToMinutes(a.scheduledTime) - timeToMinutes(b.scheduledTime);
       });
     });
 
-    // Flatten columns into a single array for positioning, maintaining truck grouping
-    const allColumns: { truckKey: string; column: Delivery[]; columnIndex: number }[] = [];
-    
-    // Sort truck types by earliest delivery time
-    const sortedTruckKeys = Object.keys(truckColumns).sort((a, b) => {
-      const aEarliestTime = Math.min(...truckColumns[a].map(col => 
-        Math.min(...col.map(d => timeToMinutes(d.scheduledTime)))
-      ));
-      const bEarliestTime = Math.min(...truckColumns[b].map(col => 
-        Math.min(...col.map(d => timeToMinutes(d.scheduledTime)))
-      ));
+    // Sort columns by earliest delivery time in each column
+    allColumns.sort((columnA, columnB) => {
+      const aEarliestTime = Math.min(...columnA.map(d => timeToMinutes(d.scheduledTime)));
+      const bEarliestTime = Math.min(...columnB.map(d => timeToMinutes(d.scheduledTime)));
       return aEarliestTime - bEarliestTime;
-    });
-    
-    // Add all columns to the flat array
-    sortedTruckKeys.forEach(truckKey => {
-      truckColumns[truckKey].forEach((column, columnIndex) => {
-        allColumns.push({ truckKey, column, columnIndex });
-      });
     });
 
     // Calculate positions for each delivery
@@ -381,7 +405,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
     const totalColumns = allColumns.length;
     const columnWidth = totalColumns > 0 ? 90 / totalColumns : 90; // 90% to leave margin for clicking
     
-    allColumns.forEach(({ truckKey, column }, globalColumnIndex) => {
+    allColumns.forEach((column, globalColumnIndex) => {
       const leftPosition = globalColumnIndex * columnWidth;
       
       column.forEach((delivery) => {
