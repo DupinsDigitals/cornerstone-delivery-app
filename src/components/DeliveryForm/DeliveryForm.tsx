@@ -606,8 +606,62 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             Current estimate: {formatDuration(formData.estimatedTravelTime)} 
             (includes round trip + loading/unloading time)
           </p>
+        {/* Recurring Settings - Show for all entry types */}
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {formData.entryType === 'internal' ? 'Recurring Event Settings' :
+             formData.entryType === 'equipmentMaintenance' ? 'Recurring Maintenance Settings' :
+             'Recurring Delivery Settings'}
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Repeat
+              </label>
+              <select
+                value={formData.repeat}
+                onChange={(e) => handleInputChange('repeat', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="none">Never</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly (Mon-Fri)</option>
+                <option value="monthly">Monthly</option>
+                <option value="annually">Annually</option>
+              </select>
+            </div>
         </div>
+            {formData.repeat !== 'none' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Repeat Until
+                </label>
+                <input
+                  type="date"
+                  value={formData.repeatUntil}
+                  onChange={(e) => handleInputChange('repeatUntil', e.target.value)}
+                  min={formData.scheduledDate}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            )}
+          </div>
         )}
+          {formData.repeat !== 'none' && formData.repeatUntil && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-800">
+                <strong>Preview:</strong> This will create multiple entries from{' '}
+                {new Date(formData.scheduledDate + 'T00:00:00').toLocaleDateString()} to{' '}
+                {new Date(formData.repeatUntil + 'T00:00:00').toLocaleDateString()}{' '}
+                {formData.repeat === 'weekly' ? '(Monday-Friday only)' : `(${formData.repeat})`}
+                {formData.scheduledTime && formData.endTime && 
+                  ` from ${formData.scheduledTime} to ${formData.endTime}`
+                }
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Additional Notes */}
         <div>
