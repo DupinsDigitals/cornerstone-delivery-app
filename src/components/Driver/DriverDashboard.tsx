@@ -745,7 +745,7 @@ export const DriverDashboard: React.FC = () => {
                           <Clock className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Schedule:</span>
-                            <p className="text-gray-900">{formatTime(delivery.scheduledTime)}</p>
+                            <p className="text-gray-900">{formatTime(safeString(delivery.scheduledTime))}</p>
                           </div>
                         </div>
 
@@ -774,6 +774,16 @@ export const DriverDashboard: React.FC = () => {
                         </div>
 
                         <div className="flex items-start">
+                          <div className="w-4 h-4 text-gray-400 mr-2 mt-0.5 flex items-center justify-center">
+                            #
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Number of Trips:</span>
+                            <p className="text-gray-900">{safeString(delivery.numberOfTrips)}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start">
                           <Package className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Material:</span>
@@ -795,7 +805,7 @@ export const DriverDashboard: React.FC = () => {
                           </div>
                         </div>
 
-                        {delivery.additionalNotes && (
+                        {safeString(delivery.additionalNotes) && (
                           <div className="flex items-start">
                             <div className="w-4 h-4 text-gray-400 mr-2 mt-0.5">📝</div>
                             <div>
