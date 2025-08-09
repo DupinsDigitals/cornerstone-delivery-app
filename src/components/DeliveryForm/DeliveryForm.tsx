@@ -341,6 +341,39 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             <option value="internal">Internal Event</option>
             <option value="equipmentMaintenance">Equipment Maintenance</option>
           </select>
+          
+          {/* Truck Color Visual Indicators */}
+          <div className="mt-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">
+              {formData.originStore} Truck Types:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(TRUCK_TYPES[formData.originStore as keyof typeof TRUCK_TYPES] || []).map((truck) => {
+                const truckColor = getTruckColor(formData.originStore, truck);
+                const textColor = getContrastTextColor(truckColor);
+                const isSelected = formData.truckType === truck;
+                const shortName = truck.replace(' (22 tons)', '').replace(' (10 tons)', '');
+                
+                return (
+                  <button
+                    key={truck}
+                    type="button"
+                    onClick={() => handleInputChange('truckType', truck)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isSelected ? 'ring-2 ring-blue-400 ring-offset-1' : ''
+                    }`}
+                    style={{
+                      backgroundColor: truckColor,
+                      color: textColor
+                    }}
+                    title={truck}
+                  >
+                    {shortName}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Client Information */}
