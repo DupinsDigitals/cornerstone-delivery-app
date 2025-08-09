@@ -71,9 +71,14 @@ export const getDeliveriesFromFirestore = async (): Promise<{ success: boolean; 
 // Add new delivery to Firestore
 export const addDeliveryToFirestore = async (deliveryData: Partial<Delivery>): Promise<{ success: boolean; id?: string; error?: string }> => {
   try {
+    // Filter out undefined values to prevent Firestore errors
+    const cleanedData = Object.fromEntries(
+      Object.entries(deliveryData).filter(([_, value]) => value !== undefined)
+    );
+    
     const deliveriesRef = collection(db, DELIVERIES_COLLECTION);
     const docRef = await addDoc(deliveriesRef, {
-      ...deliveryData,
+      ...cleanedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -91,9 +96,14 @@ export const addDeliveryToFirestore = async (deliveryData: Partial<Delivery>): P
 // Update existing delivery in Firestore
 export const updateDeliveryInFirestore = async (deliveryId: string, updateData: Partial<Delivery>): Promise<{ success: boolean; error?: string }> => {
   try {
+    // Filter out undefined values to prevent Firestore errors
+    const cleanedData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, value]) => value !== undefined)
+    );
+    
     const deliveryRef = doc(db, DELIVERIES_COLLECTION, deliveryId);
     await updateDoc(deliveryRef, {
-      ...updateData,
+      ...cleanedData,
       updatedAt: serverTimestamp(),
     });
     
