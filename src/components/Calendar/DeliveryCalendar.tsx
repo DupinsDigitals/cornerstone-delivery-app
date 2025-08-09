@@ -878,17 +878,17 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
           </div>
 
           {/* Day Columns */}
-          <div className="flex flex-1 min-w-0 relative">
-            {/* Current Time Line */}
+          <div className="flex flex-1 min-w-0 relative" style={{ position: 'relative' }}>
+            {/* Current Time Line - spans all days */}
             {showCurrentTimeLine && (
               <div
-                className="absolute border-t-2 border-red-600 z-5 pointer-events-none"
+                className="absolute border-t-2 border-red-600 pointer-events-none"
                 style={{
                   top: `${currentTimePosition.top}px`,
-                  left: '0',
-                  right: '0',
+                  left: 0,
+                  right: 0,
                   width: '100%',
-                  position: 'absolute',
+                  zIndex: 1000,
                   boxShadow: '0 1px 3px rgba(220, 38, 38, 0.3)'
                 }}
               />
