@@ -266,13 +266,47 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
       const start2 = timeToMinutes(delivery2.scheduledTime);
       
       // Calculate end times
-      const duration1 = delivery1.estimatedTravelTime || delivery1.estimatedTimeMinutes || 60;
-      const duration2 = delivery2.estimatedTravelTime || delivery2.estimatedTimeMinutes || 60;
-      const end1 = start1 + duration1;
-      const end2 = start2 + duration2;
+      let duration1, duration2;
+      
+      // Calculate duration for delivery1
+      if (delivery1.startTime && delivery1.endTime) {
+        const startDate1 = new Date(`${delivery1.scheduledDate}T${delivery1.startTime}`);
+        const endDate1 = new Date(`${delivery1.scheduledDate}T${delivery1.endTime}`);
+        duration1 = (endDate1.getTime() - startDate1.getTime()) / 60000;
+      } else {
+        duration1 = delivery1.estimatedTravelTime || delivery1.estimatedTimeMinutes || 60;
+      }
+      
+      // Calculate duration for delivery2
+      if (delivery2.startTime && delivery2.endTime) {
+        const startDate2 = new Date(`${delivery2.scheduledDate}T${delivery2.startTime}`);
+        const endDate2 = new Date(`${delivery2.scheduledDate}T${delivery2.endTime}`);
+        duration2 = (endDate2.getTime() - startDate2.getTime()) / 60000;
+      } else {
+        duration2 = delivery2.estimatedTravelTime || delivery2.estimatedTimeMinutes || 60;
+      }
+      
+      const end1 = start1 + Math.max(30, duration1); // Minimum 30 minutes
+      const end2 = start2 + Math.max(30, duration2); // Minimum 30 minutes
       
       // Check if they overlap (start of one is before end of other)
-      return (start1 < end2 && start2 < end1);
+      const overlaps = (start1 < end2 && start2 < end1);
+      
+      // Debug logging to help identify overlap issues
+      if (overlaps) {
+        console.log(`🔄 Overlap detected:`, {
+          delivery1: delivery1.clientName,
+          start1: `${Math.floor(start1/60)}:${(start1%60).toString().padStart(2,'0')}`,
+          end1: `${Math.floor(end1/60)}:${(end1%60).toString().padStart(2,'0')}`,
+          delivery2: delivery2.clientName,
+          start2: `${Math.floor(start2/60)}:${(start2%60).toString().padStart(2,'0')}`,
+          end2: `${Math.floor(end2/60)}:${(end2%60).toString().padStart(2,'0')}`,
+          duration1,
+          duration2
+        });
+      }
+      
+      return overlaps;
     };
     
     // Group deliveries by truck type, creating sub-columns for overlaps
