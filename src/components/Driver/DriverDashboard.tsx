@@ -753,15 +753,15 @@ export const DriverDashboard: React.FC = () => {
                           <MapPin className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Address:</span>
-                            {delivery.deliveryAddress ? (
+                            {delivery.deliveryAddress || delivery.address ? (
                               <a
-                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(delivery.deliveryAddress)}`}
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(delivery.deliveryAddress || delivery.address || '')}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1 break-words"
                                 title="Open in Google Maps"
                               >
-                                {delivery.deliveryAddress}
+                                {delivery.deliveryAddress || delivery.address}
                               </a>
                             ) : (
                               <p className="text-gray-500 italic mt-1">Address not available</p>
@@ -799,13 +799,13 @@ export const DriverDashboard: React.FC = () => {
                           <Phone className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Phone:</span>
-                            {delivery.clientPhone ? (
+                            {delivery.clientPhone || delivery.phone ? (
                               <a
-                                href={`tel:${delivery.clientPhone.replace(/\D/g, '')}`}
+                                href={`tel:${(delivery.clientPhone || delivery.phone || '').replace(/\D/g, '')}`}
                                 className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1"
                                 title="Call client"
                               >
-                                {delivery.clientPhone}
+                                {delivery.clientPhone || delivery.phone}
                               </a>
                             ) : (
                               <p className="text-gray-500 italic mt-1">Phone not available</p>
@@ -813,12 +813,12 @@ export const DriverDashboard: React.FC = () => {
                           </div>
                         </div>
 
-                        {delivery.additionalNotes && delivery.additionalNotes.trim() && (
+                        {(delivery.additionalNotes || delivery.notes) && (
                           <div className="flex items-start">
                             <div className="w-4 h-4 text-gray-400 mr-2 mt-0.5">📝</div>
                             <div>
                               <span className="font-medium text-gray-700">Notes:</span>
-                              <p className="text-gray-900 italic">{delivery.additionalNotes}</p>
+                              <p className="text-gray-900 italic">{delivery.additionalNotes || delivery.notes}</p>
                             </div>
                           </div>
                         )}
