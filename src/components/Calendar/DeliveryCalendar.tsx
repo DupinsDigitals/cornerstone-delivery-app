@@ -257,60 +257,43 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
 
   // Calculate positions for all deliveries in a day
   const calculateDeliveryPositions = (dayDeliveries: Delivery[]): DeliveryPosition[] => {
-    // Sort deliveries by start time
-    const sortedDeliveries = [...dayDeliveries].sort((a, b) => {
-      const aStartTime = a.startTime || a.scheduledTime;
-      const bStartTime = b.startTime || b.scheduledTime;
-      return timeToMinutes(aStartTime) - timeToMinutes(bStartTime);
+    // Group deliveries by truck type first, then sort by time within each group
+    const truckGroups: { [key: string]: Delivery[] } = {};
+    
+    // Group by truck type
+    dayDeliveries.forEach(delivery => {
+      const truckKey = `${delivery.originStore}-${delivery.truckType}`;
+      if (!truckGroups[truckKey]) {
+        truckGroups[truckKey] = [];
+      }
+      truckGroups[truckKey].push(delivery);
     });
 
-    // Group deliveries by time overlaps for side-by-side positioning
-    const timeGroups: Delivery[][] = [];
-    
-    sortedDeliveries.forEach(delivery => {
-      const deliveryStart = timeToMinutes(delivery.startTime || delivery.scheduledTime);
-      const deliveryEnd = delivery.endTime 
-        ? timeToMinutes(delivery.endTime)
-        : deliveryStart + (delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60);
-      
-      // Find existing group that this delivery overlaps with
-      let addedToGroup = false;
-      
-      for (let group of timeGroups) {
-        // Check if this delivery overlaps with any delivery in this group
-        const hasOverlap = group.some(existingDelivery => {
-          const existingStart = timeToMinutes(existingDelivery.startTime || existingDelivery.scheduledTime);
-          const existingEnd = existingDelivery.endTime 
-            ? timeToMinutes(existingDelivery.endTime)
-            : existingStart + (existingDelivery.estimatedTravelTime || existingDelivery.estimatedTimeMinutes || 60);
-          
-          // Check for time overlap
-          return (deliveryStart < existingEnd && deliveryEnd > existingStart);
-        });
-        
-        if (hasOverlap) {
-          group.push(delivery);
-          addedToGroup = true;
-          break;
-        }
-      }
-      
-      // If no overlap found, create new group
-      if (!addedToGroup) {
-        timeGroups.push([delivery]);
-      }
+    // Sort deliveries within each truck group by scheduled time
+    Object.keys(truckGroups).forEach(truckKey => {
+      truckGroups[truckKey].sort((a, b) => {
+        const aStartTime = a.startTime || a.scheduledTime;
+        const bStartTime = b.startTime || b.scheduledTime;
+        return timeToMinutes(aStartTime) - timeToMinutes(bStartTime);
+      });
+    });
+
+    // Convert truck groups to array and sort by earliest delivery time in each group
+    const sortedTruckGroups = Object.entries(truckGroups).sort(([, aDeliveries], [, bDeliveries]) => {
+      const aEarliestTime = timeToMinutes(aDeliveries[0].startTime || aDeliveries[0].scheduledTime);
+      const bEarliestTime = timeToMinutes(bDeliveries[0].startTime || bDeliveries[0].scheduledTime);
+      return aEarliestTime - bEarliestTime;
     });
 
     // Calculate positions for each delivery
     const positions: DeliveryPosition[] = [];
+    const totalTruckGroups = sortedTruckGroups.length;
+    const columnWidth = totalTruckGroups > 0 ? 90 / totalTruckGroups : 90; // 90% to leave margin for clicking
     
-    timeGroups.forEach(group => {
-      const groupSize = group.length;
-      // Reserve 10% margin on the right for clicking
-      const availableWidth = 90; // 90% of column width
-      const cardWidth = groupSize === 1 ? availableWidth : availableWidth / groupSize;
+    sortedTruckGroups.forEach(([truckKey, deliveries], groupIndex) => {
+      const leftPosition = groupIndex * columnWidth;
       
-      group.forEach((delivery, index) => {
+      deliveries.forEach((delivery) => {
         const startTime = delivery.startTime || delivery.scheduledTime;
         const endTime = delivery.endTime;
         
@@ -335,8 +318,8 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
         const height = (finalDuration / 30) * slotHeight;
         
         // Calculate horizontal position and width for side-by-side layout
-        const width = cardWidth - 1; // Subtract 1% for spacing between cards
-        const left = (index * cardWidth) + 0.5; // Position cards side by side with small margin
+        const width = columnWidth - 1; // Subtract 1% for spacing between columns
+        const left = leftPosition + 0.5; // Position in truck column with small margin
         
         // Debugging help
         console.log(`📅 Delivery: ${delivery.clientName}`, {
@@ -345,9 +328,8 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
           durationMinutes: durationInMinutes,
           slotCount: Math.ceil(durationInMinutes / 30),
           calculatedHeight: height,
-          groupIndex: index + 1,
-          groupSize: groupSize,
-          width: `${width}%`,
+          truckGroup: truckKey,
+          columnIndex: groupIndex,
           left: `${left}%`
         });
         
@@ -357,7 +339,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
           height,
           width,
           left,
-          zIndex: 10 + index
+          zIndex: 10 + groupIndex
         });
       });
     });
