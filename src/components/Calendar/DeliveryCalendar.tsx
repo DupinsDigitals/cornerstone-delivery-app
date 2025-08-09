@@ -882,9 +882,12 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
             {/* Current Time Line */}
             {showCurrentTimeLine && (
               <div
-                className="absolute left-0 right-0 border-t-2 border-red-600 z-5 pointer-events-none"
+                className="absolute inset-x-0 border-t-2 border-red-600 z-5 pointer-events-none"
                 style={{
                   top: `${currentTimePosition.top}px`,
+                  left: 0,
+                  right: 0,
+                  width: '100%',
                   boxShadow: '0 1px 3px rgba(220, 38, 38, 0.3)'
                 }}
               />
