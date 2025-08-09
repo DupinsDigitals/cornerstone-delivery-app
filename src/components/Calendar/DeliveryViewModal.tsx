@@ -316,7 +316,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
 
           {/* Invoice Number - Only show for deliveries, not internal events or maintenance */}
           {delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
-          <div className="flex items-center space-x-3">
+          <div className="flex items-start space-x-3">
             <FileText className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Invoice Number:</span>
@@ -327,52 +327,64 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
 
           {/* Delivery Address - Only show for deliveries, not internal events or maintenance */}
           {delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
-          <div className="flex items-center space-x-3">
+          <div className="flex items-start space-x-3">
             <MapPin className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Address:</span>
-              <p className="text-gray-900">
-                {delivery.deliveryAddress}
-              </p>
+              {delivery.deliveryAddress ? (
+                <p className="text-gray-900 break-words">
+                  {delivery.deliveryAddress}
+                </p>
+              ) : (
+                <p className="text-gray-500 italic">Address not provided</p>
+              )}
             </div>
           </div>
           )}
 
           {/* Client Phone Number - Only show for deliveries, not internal events or maintenance */}
           {delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
-          <div className="flex items-center space-x-3">
+          <div className="flex items-start space-x-3">
             <Phone className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Client Phone Number:</span>
-              <a
-                href={`tel:${(delivery.clientPhone || '').replace(/\D/g, '')}`}
-                className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors font-medium"
-                title="Call client"
-              >
-                {delivery.clientPhone}
-              </a>
+              {delivery.clientPhone ? (
+                <a
+                  href={`tel:${delivery.clientPhone.replace(/\D/g, '')}`}
+                  className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors font-medium block mt-1"
+                  title="Call client"
+                >
+                  {delivery.clientPhone}
+                </a>
+              ) : (
+                <p className="text-gray-500 italic mt-1">Phone number not provided</p>
+              )}
             </div>
           </div>
           )}
 
           {/* Number of Trips - Only show for deliveries, not internal events or maintenance */}
           {delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
-          <div className="flex items-center space-x-3">
+          <div className="flex items-start space-x-3">
             <Truck className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Number of Trips:</span>
-              <p className="text-gray-900">{delivery.numberOfTrips}</p>
+              <p className="text-gray-900">{delivery.numberOfTrips || 1}</p>
             </div>
           </div>
           )}
 
           {/* Material Description - Only show for deliveries, not internal events or maintenance */}
           {delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
-          <div className="flex items-center space-x-3">
+          <div className="flex items-start space-x-3">
             <Package className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Material Description:</span>
-              <p className="text-gray-900">{delivery.materialDescription || 'No description provided'}</p>
+              {delivery.materialDescription ? (
+                <p className="text-gray-900 break-words mt-1">{delivery.materialDescription}</p>
+              ) : (
+                <p className="text-gray-500 italic mt-1">No description provided</p>
+              )}
             </div>
           </div>
           )}
@@ -385,13 +397,13 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                 <span className="text-sm font-medium text-gray-700">
                   {delivery.entryType === 'equipmentMaintenance' ? 'Maintenance Notes:' : 'Additional Notes:'}
                 </span>
-                <p className="text-gray-900 whitespace-pre-wrap">{delivery.additionalNotes}</p>
+                <p className="text-gray-900 whitespace-pre-wrap break-words mt-1">{delivery.additionalNotes}</p>
               </div>
             </div>
           )}
 
           {/* Truck Information */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-start space-x-3">
             <Truck className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Truck & Store:</span>
@@ -407,11 +419,11 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
           </div>
 
           {/* Scheduled Date & Time */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-start space-x-3">
             <Calendar className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Scheduled:</span>
-              <p className="text-gray-900">
+              <p className="text-gray-900 mt-1">
                 {formatDate(delivery.scheduledDate)} at {formatTime(delivery.scheduledTime)}
               </p>
             </div>
