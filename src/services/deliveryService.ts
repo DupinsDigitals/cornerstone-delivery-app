@@ -76,12 +76,33 @@ export const addDeliveryToFirestore = async (deliveryData: Partial<Delivery>): P
       Object.entries(deliveryData).filter(([_, value]) => value !== undefined)
     );
     
+    // Ensure required fields for webhook are present
+    const dataForFirestore = {
+      ...cleanedData,
+      // Set default status if not provided
+      status: cleanedData.status || 'PENDING',
+      // Ensure webhook hasn't been sent yet
+      scheduledWebhookSent: false,
+      // Map field names for webhook compatibility
+      customerName: cleanedData.clientName || cleanedData.customerName,
+      customerPhone: cleanedData.clientPhone || cleanedData.customerPhone,
+      address: cleanedData.deliveryAddress || cleanedData.address,
+      scheduledDateTime: cleanedData.scheduledDate && cleanedData.scheduledTime 
+        ? `${cleanedData.scheduledDate} ${cleanedData.scheduledTime}`
+        : undefined,
+      invoiceNumber: cleanedData.invoiceNumber,
+      store: cleanedData.originStore || cleanedData.store
+    };
+
     const deliveriesRef = collection(db, DELIVERIES_COLLECTION);
     const docRef = await addDoc(deliveriesRef, {
-      ...cleanedData,
+      ...dataForFirestore,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    
+    console.log('✅ Delivery created successfully with ID:', docRef.id);
+    console.log('📧 Webhook should be triggered automatically by Cloud Function');
     
     return { success: true, id: docRef.id };
   } catch (error) {
