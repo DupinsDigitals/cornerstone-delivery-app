@@ -20,6 +20,7 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
     // Generate unique execution ID for this function run
     const executionId = `${deliveryId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     functions.logger.info(`🚀 Function started - Execution ID: ${executionId}, Delivery: ${deliveryId}`);
+    functions.logger.info(`📋 Delivery data received:`, JSON.stringify(deliveryData, null, 2));
     
     // CRITICAL: Early check - If webhook already sent, skip immediately
     if (deliveryData.scheduledWebhookSent === true) {
@@ -31,6 +32,12 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       // Pre-check: Only process PENDING deliveries
       if (deliveryData.status && deliveryData.status !== 'PENDING') {
         functions.logger.info(`❌ Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook - Execution: ${executionId}`);
+        return null;
+      }
+      
+      // Skip internal events and equipment maintenance
+      if (deliveryData.entryType === 'internal' || deliveryData.entryType === 'equipmentMaintenance') {
+        functions.logger.info(`❌ Delivery ${deliveryId} is internal/maintenance (${deliveryData.entryType}), skipping webhook - Execution: ${executionId}`);
         return null;
       }
       
@@ -94,21 +101,49 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       
       functions.logger.info(`🎯 All verifications passed, proceeding with webhook send - Execution: ${executionId}`);
       
-      // Extract fields with sensible fallbacks
-      const customerName = deliveryData.customerName || deliveryData.clientName || '';
-      const customerPhone = deliveryData.customerPhone || deliveryData.destinationPhone || deliveryData.phone || '';
+      // Extract fields with comprehensive fallbacks and validation
+      const customerName = deliveryData.customerName || deliveryData.clientName || 'Unknown Customer';
+      const customerPhone = deliveryData.customerPhone || deliveryData.clientPhone || deliveryData.destinationPhone || deliveryData.phone || '';
       const address = deliveryData.address || deliveryData.deliveryAddress || '';
-      const scheduledDateTime = deliveryData.scheduledDateTime || deliveryData.scheduledAt || `${deliveryData.scheduledDate || ''} ${deliveryData.scheduledTime || ''}`.trim();
+      const scheduledDateTime = deliveryData.scheduledDateTime || 
+                               (deliveryData.scheduledDate && deliveryData.scheduledTime ? 
+                                `${deliveryData.scheduledDate} ${deliveryData.scheduledTime}` : '');
       const invoiceNumber = deliveryData.invoiceNumber || deliveryData.invoice || '';
-      const store = deliveryData.store || deliveryData.location || deliveryData.originStore || '';
+      const store = deliveryData.store || deliveryData.originStore || deliveryData.location || '';
+      
+      functions.logger.info(`📋 Extracted webhook data:`, {
+        customerName,
+        customerPhone,
+        address,
+        scheduledDateTime,
+        invoiceNumber,
+        store
+      });
       
       // Validate required fields
       if (!customerPhone || !address || !scheduledDateTime) {
-        functions.logger.warn(`❌ Missing required fields for delivery ${deliveryId} - Execution: ${executionId}:`, {
+        functions.logger.error(`❌ Missing required fields for delivery ${deliveryId} - Execution: ${executionId}:`, {
           customerPhone: !!customerPhone,
           address: !!address,
-          scheduledDateTime: !!scheduledDateTime
+          scheduledDateTime: !!scheduledDateTime,
+          rawData: {
+            customerPhone: deliveryData.customerPhone,
+            clientPhone: deliveryData.clientPhone,
+            address: deliveryData.address,
+            deliveryAddress: deliveryData.deliveryAddress,
+            scheduledDate: deliveryData.scheduledDate,
+            scheduledTime: deliveryData.scheduledTime,
+            scheduledDateTime: deliveryData.scheduledDateTime
+          }
         });
+        
+        // Mark as failed but don't retry
+        await snap.ref.update({
+          webhookSentSuccessfully: false,
+          webhookError: 'Missing required fields for webhook',
+          webhookErrorAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
         return null;
       }
       
@@ -144,19 +179,39 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
         await snap.ref.update({
           webhookSentSuccessfully: true,
           webhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
-          webhookResponse: response.status
+          webhookResponse: response.status,
+          webhookResponseData: response.data
         });
       } else {
         functions.logger.error(`❌ Webhook failed for delivery ${deliveryId}. Status: ${response.status} - Execution: ${executionId}`, response.data);
+        
+        // Mark as failed
+        await snap.ref.update({
+          webhookSentSuccessfully: false,
+          webhookError: `HTTP ${response.status}: ${JSON.stringify(response.data)}`,
+          webhookErrorAt: admin.firestore.FieldValue.serverTimestamp()
+        });
       }
       
     } catch (error) {
+      // Mark as failed with error details
+      try {
+        await snap.ref.update({
+          webhookSentSuccessfully: false,
+          webhookError: error.message || 'Unknown error',
+          webhookErrorAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (updateError) {
+        functions.logger.error(`❌ Failed to update error status for delivery ${deliveryId}:`, updateError);
+      }
+      
       if (error.code === 'ECONNABORTED') {
         functions.logger.error(`⏰ Webhook timeout for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
       } else if (error.response) {
         functions.logger.error(`❌ Webhook failed for delivery ${deliveryId}. Status: ${error.response.status} - Execution: ${executionId}`, error.response.data);
       } else {
         functions.logger.error(`💥 Error sending webhook for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
+        functions.logger.error(`💥 Full error details:`, error);
       }
       // Do not retry automatically - just log the error
     }
