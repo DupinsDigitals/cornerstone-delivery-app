@@ -204,7 +204,9 @@ export const DriverDashboard: React.FC = () => {
         status: newStatus,
         updatedAt: new Date().toISOString(),
         lastUpdatedBy: user?.email,
-        lastUpdatedByName: user?.name || user?.email || 'Unknown Driver'
+        lastUpdatedByName: user?.name || user?.email || 'Unknown Driver',
+        editedBy: user?.email,
+        editedByName: user?.name || user?.email || 'Unknown Driver'
       };
 
       // If starting a delivery (moving from PENDING), claim ownership

@@ -630,6 +630,8 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             {canShowHoldButton && (
               <button
                 onClick={() => handleStatusUpdate('On Hold', {
+                  lastUpdatedBy: user?.email || user?.username || 'Unknown',
+                  lastUpdatedByName: user?.name || user?.username || 'Unknown User',
                   editedBy: user?.email || user?.username || 'Unknown',
                   editedByName: user?.name || user?.username || 'Unknown User'
                 })}
@@ -654,6 +656,8 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             {canShowResumeButton && (
               <button
                 onClick={() => handleStatusUpdate('Pending', {
+                  lastUpdatedBy: user?.email || user?.username || 'Unknown',
+                  lastUpdatedByName: user?.name || user?.username || 'Unknown User',
                   editedBy: user?.email || user?.username || 'Unknown',
                   editedByName: user?.name || user?.username || 'Unknown User'
                 })}

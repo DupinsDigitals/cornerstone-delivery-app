@@ -93,7 +93,15 @@ export const addDeliveryToFirestore = async (deliveryData: Partial<Delivery>): P
       invoiceNumber: cleanedData.invoiceNumber || null,
       store: cleanedData.originStore || cleanedData.store || null,
       // Add phone field mapping for webhook
-      phone: cleanedData.clientPhone || cleanedData.customerPhone || cleanedData.phone || null
+      phone: cleanedData.clientPhone || cleanedData.customerPhone || cleanedData.phone || null,
+      // Add creation history entry
+      editHistory: [{
+        action: 'created',
+        editedAt: new Date().toISOString(),
+        editedBy: cleanedData.createdBy || 'Unknown',
+        editedByName: cleanedData.createdByName || 'Unknown User',
+        changes: 'Delivery created'
+      }]
     };
 
     const deliveriesRef = collection(db, DELIVERIES_COLLECTION);
@@ -119,16 +127,38 @@ export const addDeliveryToFirestore = async (deliveryData: Partial<Delivery>): P
 // Update existing delivery in Firestore
 export const updateDeliveryInFirestore = async (deliveryId: string, updateData: Partial<Delivery>): Promise<{ success: boolean; error?: string }> => {
   try {
+    // Get current delivery data to preserve edit history
+    const deliveryRef = doc(db, DELIVERIES_COLLECTION, deliveryId);
+    const deliveryDoc = await getDoc(deliveryRef);
+    
+    if (!deliveryDoc.exists()) {
+      return { success: false, error: 'Delivery not found' };
+    }
+    
+    const currentData = deliveryDoc.data();
+    
     // Filter out undefined values to prevent Firestore errors
     const cleanedData = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined)
     );
     
-    const deliveryRef = doc(db, DELIVERIES_COLLECTION, deliveryId);
-    await updateDoc(deliveryRef, {
+    // Add edit history entry for regular edits (not status changes)
+    const editEntry = {
+      action: 'edited',
+      editedAt: new Date().toISOString(),
+      editedBy: cleanedData.lastEditedBy || cleanedData.createdBy || 'Unknown',
+      editedByName: cleanedData.lastEditedByName || cleanedData.createdByName || 'Unknown User',
+      changes: 'Delivery information updated'
+    };
+    
+    const finalUpdateData = {
       ...cleanedData,
       updatedAt: serverTimestamp(),
-    });
+      lastEditedAt: new Date().toISOString(),
+      editHistory: currentData.editHistory ? [...currentData.editHistory, editEntry] : [editEntry]
+    };
+    
+    await updateDoc(deliveryRef, finalUpdateData);
     
     return { success: true };
   } catch (error) {
@@ -237,8 +267,8 @@ export const updateDeliveryStatus = async (deliveryId: string, status: string, a
     const editEntry = {
       action: 'status_changed',
       editedAt: new Date().toISOString(),
-      editedBy: additionalData?.lastUpdatedBy || 'Unknown',
-      editedByName: additionalData?.lastUpdatedByName || 'Unknown User',
+      editedBy: additionalData?.lastUpdatedBy || additionalData?.editedBy || 'Unknown',
+      editedByName: additionalData?.lastUpdatedByName || additionalData?.editedByName || 'Unknown User',
       changes: `Status changed to ${status}`
     };
     
