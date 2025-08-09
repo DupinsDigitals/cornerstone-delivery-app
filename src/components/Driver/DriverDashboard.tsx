@@ -61,17 +61,6 @@ export const DriverDashboard: React.FC = () => {
     }
   };
 
-  // Status regression mapping (undo functionality)
-  const getPreviousStatus = (currentStatus: string): string => {
-    switch (currentStatus) {
-      case 'GETTING LOAD':
-        return 'pending';
-      case 'ON THE WAY':
-        return 'GETTING LOAD';
-      default:
-        return currentStatus; // No change for PENDING or COMPLETE
-    }
-  };
 
   // Get status button styling
   const getStatusButtonStyle = (status: string) => {
@@ -371,7 +360,6 @@ export const DriverDashboard: React.FC = () => {
     const nextStatus = getNextStatus(status);
     const canUpdate = notStarted || isOwner;
     const isComplete = status === 'COMPLETE';
-    const canUndo = isOwner && !isComplete && status !== 'pending' && status !== 'Pending';
     const isAboutToComplete = nextStatus === 'COMPLETE';
 
     if (isUpdating || isLocked) {
@@ -470,15 +458,6 @@ export const DriverDashboard: React.FC = () => {
             </span>
           )}
         </button>
-        {canUndo && (
-          <button
-            onClick={() => handleUndoClick(delivery)}
-            className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-all hover:bg-gray-300 active:scale-95 whitespace-nowrap flex-shrink-0"
-            title={`Go back to ${getPreviousStatus(status)}`}
-          >
-            ↶ Undo
-          </button>
-        )}
       </div>
     );
   };
@@ -527,31 +506,6 @@ export const DriverDashboard: React.FC = () => {
     }
   };
 
-  const handleUndoClick = (delivery: Delivery) => {
-    // Master Drivers cannot undo status changes
-    if (isMasterDriver) {
-      return;
-    }
-    
-    // Check if delivery is locked (being updated)
-    if (lockedDeliveries.has(delivery.id)) {
-      return; // Silently ignore if locked
-    }
-    
-    const isOwner = delivery.startedBy === user?.email;
-    const currentStatus = delivery.status;
-    
-    // Only allow undo if:
-    // 1. Driver owns this delivery
-    // 2. Status is not COMPLETE
-    // 3. Status is not PENDING (can't go back from start)
-    if (isOwner && currentStatus !== 'COMPLETE' && currentStatus !== 'pending' && currentStatus !== 'Pending') {
-      const previousStatus = getPreviousStatus(currentStatus);
-      if (previousStatus !== currentStatus) {
-        handleStatusUpdate(delivery, previousStatus);
-      }
-    }
-  };
 
   const handleLogout = async () => {
     if (window.confirm('Are you sure you want to logout?')) {
