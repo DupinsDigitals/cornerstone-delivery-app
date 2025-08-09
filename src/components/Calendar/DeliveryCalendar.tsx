@@ -888,7 +888,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                   left: 0,
                   right: 0,
                   width: '100%',
-                  zIndex: 1000,
+                  zIndex: 1,
                   boxShadow: '0 1px 3px rgba(220, 38, 38, 0.3)'
                 }}
               />
