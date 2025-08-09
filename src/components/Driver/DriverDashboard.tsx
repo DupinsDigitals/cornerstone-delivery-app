@@ -753,14 +753,14 @@ export const DriverDashboard: React.FC = () => {
                           <MapPin className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Address:</span>
-                            <a
+                            {delivery.deliveryAddress && delivery.deliveryAddress.trim() ? (
                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(safeString(delivery.deliveryAddress))}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1 break-words"
                               title="Open in Google Maps"
                             >
-                              {safeString(delivery.deliveryAddress)}
+                              <p className="text-gray-500 italic mt-1">Address not available</p>
                             </a>
                           </div>
                         </div>
@@ -769,7 +769,7 @@ export const DriverDashboard: React.FC = () => {
                           <Truck className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Truck:</span>
-                            <p className="text-gray-900">{safeString(delivery.truckType)}</p>
+                            <p className="text-gray-900">{delivery.truckType || 'Not specified'}</p>
                           </div>
                         </div>
 
@@ -779,7 +779,7 @@ export const DriverDashboard: React.FC = () => {
                           </div>
                           <div>
                             <span className="font-medium text-gray-700">Number of Trips:</span>
-                            <p className="text-gray-900">{safeString(delivery.numberOfTrips)}</p>
+                            <p className="text-gray-900">{delivery.numberOfTrips || 'Not specified'}</p>
                           </div>
                         </div>
 
@@ -787,30 +787,30 @@ export const DriverDashboard: React.FC = () => {
                           <Package className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Material:</span>
-                            <p className="text-gray-900">{safeString(delivery.materialDescription)}</p>
+                            <p className="text-gray-900">{delivery.materialDescription || 'Not specified'}</p>
                           </div>
                         </div>
 
                         <div className="flex items-start">
                           <Phone className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
-                          <div>
+                                href={`tel:${delivery.clientPhone.replace(/\D/g, '')}`}
                             <span className="font-medium text-gray-700">Phone:</span>
-                            <a
+                            {delivery.clientPhone && delivery.clientPhone.trim() ? (
                               href={`tel:${safeString(delivery.clientPhone).replace(/\D/g, '')}`}
-                              className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1 font-medium"
+                                {delivery.clientPhone}
                               title="Call client"
                             >
-                              {safeString(delivery.clientPhone)}
+                              <p className="text-gray-500 italic mt-1">Phone not available</p>
                             </a>
                           </div>
                         </div>
 
-                        {safeString(delivery.additionalNotes) && (
+                        {delivery.additionalNotes && delivery.additionalNotes.trim() && (
                           <div className="flex items-start">
                             <div className="w-4 h-4 text-gray-400 mr-2 mt-0.5">📝</div>
                             <div>
                               <span className="font-medium text-gray-700">Notes:</span>
-                              <p className="text-gray-900 italic">{safeString(delivery.additionalNotes)}</p>
+                              <p className="text-gray-900 italic">{delivery.additionalNotes}</p>
                             </div>
                           </div>
                         )}
