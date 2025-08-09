@@ -18,7 +18,7 @@ import {
   getDownloadURL 
 } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
-import { db, storage, functions } from '../config/firebase';
+import { db, storage, functions, auth } from '../config/firebase';
 import { Delivery } from '../types/delivery';
 
 const DELIVERIES_COLLECTION = 'deliveries';
@@ -263,6 +263,17 @@ export const updateDeliveryStatus = async (deliveryId: string, status: string, a
 // Upload delivery photos to Firebase Storage
 export const uploadDeliveryPhotos = async (deliveryId: string, files: File[]): Promise<{ success: boolean; photoUrls?: string[]; error?: string }> => {
   try {
+    // Ensure user is authenticated and refresh token
+    if (!auth.currentUser) {
+      return { 
+        success: false, 
+        error: 'User not authenticated' 
+      };
+    }
+    
+    // Force refresh of authentication token
+    await auth.currentUser.getIdToken(true);
+    
     const photoUrls: string[] = [];
     
     for (let i = 0; i < files.length; i++) {
