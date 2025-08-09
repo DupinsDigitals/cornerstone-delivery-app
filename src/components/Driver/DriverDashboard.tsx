@@ -347,6 +347,154 @@ export const DriverDashboard: React.FC = () => {
     });
   };
 
+  // Safe string conversion helper
+  const safeString = (value: any): string => {
+    if (value === null || value === undefined) return '';
+    return String(value);
+  };
+
+  const renderStatusButton = (delivery: Delivery) => {
+    // For Master Driver, show read-only status
+    if (isMasterDriver) {
+      const statusStyle = getStatusButtonStyle(delivery.status);
+      return (
+        <div className="space-y-2">
+          <button
+            disabled
+            className="w-full px-4 py-3 rounded-lg text-sm font-bold cursor-not-allowed opacity-75"
+            style={{
+              backgroundColor: statusStyle.backgroundColor,
+              color: statusStyle.color
+            }}
+          >
+            {statusStyle.label}
+          </button>
+        </div>
+      );
+    }
+    
+    const isOwner = delivery.startedBy === user?.email;
+    const notStarted = !delivery.startedBy;
+    const status = delivery.status;
+    const isUpdating = updatingDelivery === delivery.id;
+    const isLocked = lockedDeliveries.has(delivery.id);
+    const statusStyle = getStatusButtonStyle(status);
+    const nextStatus = getNextStatus(status);
+    const canUpdate = notStarted || isOwner;
+    const isComplete = status === 'COMPLETE';
+    const canUndo = isOwner && !isComplete && status !== 'pending' && status !== 'Pending';
+    const isAboutToComplete = nextStatus === 'COMPLETE';
+
+    if (isUpdating || isLocked) {
+      return (
+        <div className="space-y-2">
+          <button
+            disabled
+            className="w-full px-4 py-3 bg-gray-400 text-white rounded-lg text-sm font-bold transition-all"
+          >
+            {isUpdating ? 'UPDATING...' : 'LOCKED'}
+          </button>
+        </div>
+      );
+    }
+
+    if (isComplete) {
+      return (
+        <div className="flex items-center space-x-2">
+          <button
+            disabled
+            className="flex-1 px-3 py-2 rounded-lg text-sm font-bold cursor-not-allowed"
+            style={{
+              backgroundColor: statusStyle.backgroundColor,
+              color: statusStyle.color,
+              opacity: 0.8
+            }}
+          >
+            ✓ {statusStyle.label}
+          </button>
+        </div>
+      );
+    }
+
+    // This code is now unreachable since we block at the top of handleStatusButtonClick
+    // But keeping for safety in case of edge cases
+    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
+    if (isOwnedByAnotherDriver) {
+      const ownerInfo = safeString(delivery.startedBy);
+      return (
+        <div className="flex items-center space-x-2">
+          <button
+            disabled
+            className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
+            title={`This delivery is being handled by ${ownerInfo}`}
+          >
+            🚫 DRIVER: {safeString(ownerInfo.split('@')[0]).toUpperCase() || 'OTHER'}
+          </button>
+        </div>
+      );
+    }
+    
+    if (!canUpdate) {
+      const ownerName = safeString(delivery.lastUpdatedByName) || 
+                       safeString(delivery.startedBy?.split('@')[0]).toUpperCase() || 
+                       'ANOTHER DRIVER';
+      const statusStyle = getStatusButtonStyle(delivery.status);
+
+      return (
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => alert(`This delivery was started by ${ownerName}. You cannot update its status.`)}
+            className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm cursor-not-allowed"
+            style={{
+              backgroundColor: statusStyle.backgroundColor,
+              color: statusStyle.color,
+              opacity: 0.5
+            }}
+            title={`Started by ${ownerName}`}
+          >
+            🚫 {statusStyle.label}
+            <span className="block text-xs opacity-75">
+              Locked by {safeString(ownerName).replace(/[^A-Z0-9\s]/g, '') || 'UNKNOWN'}
+            </span>
+          </button>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center space-x-2">
+        <button
+          onClick={() => handleStatusButtonClick(delivery)}
+          className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+          style={{
+            backgroundColor: statusStyle.backgroundColor,
+            color: statusStyle.color
+          }}
+          title={nextStatus !== status ? `Click to change to ${nextStatus}` : 'Delivery complete'}
+        >
+          {statusStyle.label}
+          {isAboutToComplete ? (
+            <span className="block text-xs opacity-75">
+              Tap to → Add Photos
+            </span>
+          ) : nextStatus !== status && (
+            <span className="block text-xs opacity-75">
+              Tap to → {nextStatus}
+            </span>
+          )}
+        </button>
+        {canUndo && (
+          <button
+            onClick={() => handleUndoClick(delivery)}
+            className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-all hover:bg-gray-300 active:scale-95 whitespace-nowrap flex-shrink-0"
+            title={`Go back to ${getPreviousStatus(status)}`}
+          >
+            ↶ Undo
+          </button>
+        )}
+      </div>
+    );
+  };
+
   const handleStatusButtonClick = async (delivery: Delivery) => {
     // Master Drivers cannot interact with status buttons
     if (isMasterDriver) {
@@ -438,146 +586,6 @@ export const DriverDashboard: React.FC = () => {
       minute: '2-digit',
       hour12: true 
     });
-  };
-
-  const renderStatusButton = (delivery: Delivery) => {
-    // For Master Driver, show read-only status
-    if (isMasterDriver) {
-      const statusStyle = getStatusButtonStyle(delivery.status);
-      return (
-        <div className="space-y-2">
-          <button
-            disabled
-            className="w-full px-4 py-3 rounded-lg text-sm font-bold cursor-not-allowed opacity-75"
-            style={{
-              backgroundColor: statusStyle.backgroundColor,
-              color: statusStyle.color
-            }}
-          >
-            {statusStyle.label}
-          </button>
-        </div>
-      );
-    }
-    
-    const isOwner = delivery.startedBy === user?.email;
-    const notStarted = !delivery.startedBy;
-    const status = delivery.status;
-    const isUpdating = updatingDelivery === delivery.id;
-    const isLocked = lockedDeliveries.has(delivery.id);
-    const statusStyle = getStatusButtonStyle(status);
-    const nextStatus = getNextStatus(status);
-    const canUpdate = notStarted || isOwner;
-    const isComplete = status === 'COMPLETE';
-    const canUndo = isOwner && !isComplete && status !== 'pending' && status !== 'Pending';
-    const isAboutToComplete = nextStatus === 'COMPLETE';
-
-    if (isUpdating || isLocked) {
-      return (
-        <div className="space-y-2">
-          <button
-            disabled
-            className="w-full px-4 py-3 bg-gray-400 text-white rounded-lg text-sm font-bold transition-all"
-          >
-            {isUpdating ? 'UPDATING...' : 'LOCKED'}
-          </button>
-        </div>
-      );
-    }
-
-    if (isComplete) {
-      return (
-        <div className="flex items-center space-x-2">
-          <button
-            disabled
-            className="flex-1 px-3 py-2 rounded-lg text-sm font-bold cursor-not-allowed"
-            style={{
-              backgroundColor: statusStyle.backgroundColor,
-              color: statusStyle.color,
-              opacity: 0.8
-            }}
-          >
-            ✓ {statusStyle.label}
-          </button>
-        </div>
-      );
-    }
-
-    // This code is now unreachable since we block at the top of handleStatusButtonClick
-    // But keeping for safety in case of edge cases
-    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
-    if (isOwnedByAnotherDriver) {
-      const ownerInfo = delivery.startedBy;
-      return (
-        <div className="flex items-center space-x-2">
-          <button
-            disabled
-            className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
-            title={`This delivery is being handled by ${ownerInfo}`}
-          >
-            🚫 DRIVER: {String(ownerInfo?.split('@')[0] || '').toUpperCase() || 'OTHER'}
-          </button>
-        </div>
-      );
-    }
-    
-    if (!canUpdate) {
-      const ownerName = delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0]?.toUpperCase() || 'ANOTHER DRIVER';
-      const statusStyle = getStatusButtonStyle(delivery.status);
-
-      return (
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => alert(`This delivery was started by ${ownerName}. You cannot update its status.`)}
-            className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm cursor-not-allowed"
-            style={{
-              backgroundColor: statusStyle.backgroundColor,
-              color: statusStyle.color,
-              opacity: 0.5
-            }}
-            title={`Started by ${ownerName}`}
-          >
-            🚫 {statusStyle.label}
-            <span className="block text-xs opacity-75">
-              Locked by {String(ownerName || '').replace(/[^A-Z0-9\s]/g, '')}
-            </span>
-          </button>
-        </div>
-      );
-    }
-    return (
-      <div className="flex items-center space-x-2">
-        <button
-          onClick={() => handleStatusButtonClick(delivery)}
-          className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
-          style={{
-            backgroundColor: statusStyle.backgroundColor,
-            color: statusStyle.color
-          }}
-          title={nextStatus !== status ? `Click to change to ${nextStatus}` : 'Delivery complete'}
-        >
-          {statusStyle.label}
-          {isAboutToComplete ? (
-            <span className="block text-xs opacity-75">
-              Tap to → Add Photos
-            </span>
-          ) : nextStatus !== status && (
-            <span className="block text-xs opacity-75">
-              Tap to → {nextStatus}
-            </span>
-          )}
-        </button>
-        {canUndo && (
-          <button
-            onClick={() => handleUndoClick(delivery)}
-            className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-all hover:bg-gray-300 active:scale-95 whitespace-nowrap flex-shrink-0"
-            title={`Go back to ${getPreviousStatus(status)}`}
-          >
-            ↶ Undo
-          </button>
-        )}
-      </div>
-    );
   };
 
   if (isLoading) {
