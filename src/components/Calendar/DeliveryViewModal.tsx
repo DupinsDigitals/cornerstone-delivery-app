@@ -345,7 +345,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             <div>
               <span className="text-sm font-medium text-gray-700">Client Phone Number:</span>
               <a
-                href={`tel:${delivery.clientPhone.replace(/\D/g, '')}`}
+                href={`tel:${(delivery.clientPhone || '').replace(/\D/g, '')}`}
                 className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors font-medium"
                 title="Call client"
               >
