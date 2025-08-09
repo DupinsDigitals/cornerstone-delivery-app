@@ -836,7 +836,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
         </div>
 
         {/* Calendar Body with Fixed Height Grid */}
-        <div className="flex w-full">
+        <div className="flex w-full relative">
           {/* Time Labels Column */}
           <div className="w-16 flex-shrink-0 bg-gray-50 relative" style={{ borderRight: '2px solid #B0B0B0' }}>
             {hourlyTimeSlots.map((timeSlot, timeIndex) => (
@@ -878,7 +878,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
           </div>
 
           {/* Day Columns */}
-          <div className="flex flex-1 min-w-0 relative" style={{ position: 'relative' }}>
+          <div className="flex flex-1 min-w-0 relative">
             {/* Current Time Line */}
             {showCurrentTimeLine && (
               <div
