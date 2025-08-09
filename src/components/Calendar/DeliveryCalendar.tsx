@@ -923,10 +923,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                         {/* 30-minute interactive slot */}
                         <div
                           className={`absolute w-full h-16 border-b border-gray-200 transition-colors duration-200 ${
-                            isCurrentSlot ? 'bg-green-100' : ''
-                          } ${
-                            isCurrentSlot ? 'bg-blue-100' : ''
-                          } ${
                             isHighlighted ? 'bg-blue-100 ring-2 ring-blue-300' : ''
                           } ${
                             canCreate ? 'hover:bg-gray-50 cursor-pointer' : ''
