@@ -257,82 +257,115 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
 
   // Calculate positions for all deliveries in a day
   const calculateDeliveryPositions = (dayDeliveries: Delivery[]): DeliveryPosition[] => {
-    // Group deliveries by truck type (same truck = same column)
-    const truckGroups: { [key: string]: Delivery[] } = {};
+    // Group deliveries by truck type, handling time overlaps
+    const truckColumns: { [key: string]: Delivery[][] } = {};
     
-    // Group by truck type and store
+    // Helper function to check if two deliveries overlap in time
+    const doDeliveriesOverlap = (delivery1: Delivery, delivery2: Delivery): boolean => {
+      const start1 = timeToMinutes(delivery1.scheduledTime);
+      const start2 = timeToMinutes(delivery2.scheduledTime);
+      
+      // Calculate end times
+      const duration1 = delivery1.estimatedTravelTime || delivery1.estimatedTimeMinutes || 60;
+      const duration2 = delivery2.estimatedTravelTime || delivery2.estimatedTimeMinutes || 60;
+      const end1 = start1 + duration1;
+      const end2 = start2 + duration2;
+      
+      // Check if they overlap (start of one is before end of other)
+      return (start1 < end2 && start2 < end1);
+    };
+    
+    // Group deliveries by truck type, creating sub-columns for overlaps
     dayDeliveries.forEach(delivery => {
       const truckKey = `${delivery.originStore}-${delivery.truckType}`;
-      if (!truckGroups[truckKey]) {
-        truckGroups[truckKey] = [];
+      
+      if (!truckColumns[truckKey]) {
+        truckColumns[truckKey] = [];
       }
-      truckGroups[truckKey].push(delivery);
+      
+      // Find a column where this delivery doesn't overlap with existing ones
+      let placedInColumn = false;
+      
+      for (let columnIndex = 0; columnIndex < truckColumns[truckKey].length; columnIndex++) {
+        const column = truckColumns[truckKey][columnIndex];
+        let hasOverlap = false;
+        
+        // Check if this delivery overlaps with any delivery in this column
+        for (const existingDelivery of column) {
+          if (doDeliveriesOverlap(delivery, existingDelivery)) {
+            hasOverlap = true;
+            break;
+          }
+        }
+        
+        // If no overlap, place it in this column
+        if (!hasOverlap) {
+          column.push(delivery);
+          placedInColumn = true;
+          break;
+        }
+      }
+      
+      // If couldn't place in existing columns, create a new column
+      if (!placedInColumn) {
+        truckColumns[truckKey].push([delivery]);
+      }
     });
 
-    // Sort deliveries within each truck group by scheduled time (to maintain chronological order)
-    Object.keys(truckGroups).forEach(truckKey => {
-      truckGroups[truckKey].sort((a, b) => {
-        // Always use scheduledTime to respect the sales rep's timeline
-        return timeToMinutes(a.scheduledTime) - timeToMinutes(b.scheduledTime);
+    // Sort deliveries within each column by scheduled time
+    Object.keys(truckColumns).forEach(truckKey => {
+      truckColumns[truckKey].forEach(column => {
+        column.sort((a, b) => {
+          return timeToMinutes(a.scheduledTime) - timeToMinutes(b.scheduledTime);
+        });
       });
     });
 
-    // Sort truck groups by the earliest scheduled time in each group
-    const sortedTruckGroups = Object.entries(truckGroups).sort(([, aDeliveries], [, bDeliveries]) => {
-      const aEarliestTime = timeToMinutes(aDeliveries[0].scheduledTime);
-      const bEarliestTime = timeToMinutes(bDeliveries[0].scheduledTime);
+    // Flatten columns into a single array for positioning, maintaining truck grouping
+    const allColumns: { truckKey: string; column: Delivery[]; columnIndex: number }[] = [];
+    
+    // Sort truck types by earliest delivery time
+    const sortedTruckKeys = Object.keys(truckColumns).sort((a, b) => {
+      const aEarliestTime = Math.min(...truckColumns[a].map(col => 
+        Math.min(...col.map(d => timeToMinutes(d.scheduledTime)))
+      ));
+      const bEarliestTime = Math.min(...truckColumns[b].map(col => 
+        Math.min(...col.map(d => timeToMinutes(d.scheduledTime)))
+      ));
       return aEarliestTime - bEarliestTime;
+    });
+    
+    // Add all columns to the flat array
+    sortedTruckKeys.forEach(truckKey => {
+      truckColumns[truckKey].forEach((column, columnIndex) => {
+        allColumns.push({ truckKey, column, columnIndex });
+      });
     });
 
     // Calculate positions for each delivery
     const positions: DeliveryPosition[] = [];
-    const totalTruckGroups = sortedTruckGroups.length;
-    const columnWidth = totalTruckGroups > 0 ? 90 / totalTruckGroups : 90; // 90% to leave margin for clicking
+    const totalColumns = allColumns.length;
+    const columnWidth = totalColumns > 0 ? 90 / totalColumns : 90; // 90% to leave margin for clicking
     
-    sortedTruckGroups.forEach(([truckKey, deliveries], groupIndex) => {
-      const leftPosition = groupIndex * columnWidth;
+    allColumns.forEach(({ truckKey, column }, globalColumnIndex) => {
+      const leftPosition = globalColumnIndex * columnWidth;
       
-      deliveries.forEach((delivery) => {
-        // ALWAYS use scheduledTime for positioning - this respects the sales rep's timeline
+      column.forEach((delivery) => {
+        // Always use scheduledTime for vertical positioning
         const startTime = delivery.scheduledTime;
-        const endTime = delivery.endTime;
-        
-        let startDate, endDate, durationInMinutes;
-        
-        if (startTime && endTime) {
-          startDate = new Date(`${delivery.scheduledDate}T${startTime}`);
-          endDate = new Date(`${delivery.scheduledDate}T${endTime}`);
-          durationInMinutes = (endDate.getTime() - startDate.getTime()) / 60000;
-        } else {
-          startDate = new Date(`${delivery.scheduledDate}T${startTime}`);
-          const estimatedMinutes = delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60;
-          endDate = new Date(startDate.getTime() + (estimatedMinutes * 60 * 1000));
-          durationInMinutes = estimatedMinutes;
-        }
+        const startDate = new Date(`${delivery.scheduledDate}T${startTime}`);
+        const durationInMinutes = delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60;
         
         const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
         const finalDuration = Math.max(30, durationInMinutes); // Minimum 30 minutes
         
-        // Calculate vertical position from 6:00 AM (360 minutes) - based on SCHEDULED time
+        // Calculate vertical position from 6:00 AM (360 minutes)
         const top = ((startMinutes - 360) / 30) * slotHeight;
         const height = (finalDuration / 30) * slotHeight;
         
-        // Calculate horizontal position and width for side-by-side layout
+        // Calculate horizontal position and width
         const width = columnWidth - 1; // Subtract 1% for spacing between columns
         const left = leftPosition + 0.5; // Position in truck column with small margin
-        
-        // Debugging help
-        console.log(`📅 Delivery: ${delivery.clientName}`, {
-          scheduledTime: delivery.scheduledTime,
-          actualStartTime: delivery.startTime,
-          endTime: endTime,
-          durationMinutes: durationInMinutes,
-          slotCount: Math.ceil(durationInMinutes / 30),
-          calculatedHeight: height,
-          truckGroup: truckKey,
-          columnIndex: groupIndex,
-          left: `${left}%`
-        });
         
         positions.push({
           delivery,
@@ -340,7 +373,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
           height,
           width,
           left,
-          zIndex: 10 + groupIndex
+          zIndex: 10 + globalColumnIndex
         });
       });
     });
