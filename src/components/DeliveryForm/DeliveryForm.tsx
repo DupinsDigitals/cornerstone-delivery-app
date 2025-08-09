@@ -71,7 +71,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
     clientName: editingDelivery?.clientName || '',
     clientPhone: editingDelivery?.clientPhone || '',
     deliveryAddress: editingDelivery?.deliveryAddress || '',
-    originStore: editingDelivery?.originStore || user?.assignedStore || 'Framingham',
+    originStore: editingDelivery?.originStore || (user?.assignedStore as 'Framingham' | 'Marlborough') || 'Framingham',
     truckType: editingDelivery?.truckType || 'Flatbed',
     invoiceNumber: editingDelivery?.invoiceNumber || '',
     materialDescription: editingDelivery?.materialDescription || '',
@@ -97,7 +97,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
         clientName: editingDelivery.clientName || '',
         clientPhone: editingDelivery.clientPhone || '',
         deliveryAddress: editingDelivery.deliveryAddress || '',
-        originStore: editingDelivery.originStore || user?.assignedStore || 'Framingham',
+        originStore: editingDelivery.originStore || (user?.assignedStore as 'Framingham' | 'Marlborough') || 'Framingham',
         truckType: editingDelivery.truckType || 'Flatbed',
         invoiceNumber: editingDelivery.invoiceNumber || '',
         materialDescription: editingDelivery.materialDescription || '',
@@ -113,6 +113,12 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
         repeatUntil: editingDelivery.repeatUntil || '',
         isRecurring: editingDelivery.isRecurring || false
       });
+    } else {
+      // For new deliveries, ensure the origin store matches user's assigned store
+      setFormData(prev => ({
+        ...prev,
+        originStore: (user?.assignedStore as 'Framingham' | 'Marlborough') || 'Framingham'
+      }));
     }
   }, [editingDelivery, user?.assignedStore]);
 
