@@ -22,6 +22,31 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
   const [isCalculatingTime, setIsCalculatingTime] = useState(false);
   const addressInputRef = useRef<HTMLInputElement>(null);
 
+  // Format phone number to US format
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digits
+    const digits = value.replace(/\D/g, '');
+    
+    // Limit to 10 digits (US phone number)
+    const limitedDigits = digits.slice(0, 10);
+    
+    // Format as (XXX) XXX-XXXX
+    if (limitedDigits.length >= 6) {
+      return `(${limitedDigits.slice(0, 3)}) ${limitedDigits.slice(3, 6)}-${limitedDigits.slice(6)}`;
+    } else if (limitedDigits.length >= 3) {
+      return `(${limitedDigits.slice(0, 3)}) ${limitedDigits.slice(3)}`;
+    } else if (limitedDigits.length > 0) {
+      return `(${limitedDigits}`;
+    }
+    return '';
+  };
+
+  // Validate US phone number
+  const validatePhoneNumber = (phone: string): boolean => {
+    const digits = phone.replace(/\D/g, '');
+    return digits.length === 10;
+  };
+
   // Initialize form data with existing delivery data or defaults
   const [formData, setFormData] = useState({
     clientName: editingDelivery?.clientName || '',
@@ -99,10 +124,19 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
   }, [formData.entryType]);
 
   const handleInputChange = (field: string, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    // Special handling for phone number formatting
+    if (field === 'clientPhone' && typeof value === 'string') {
+      const formattedPhone = formatPhoneNumber(value);
+      setFormData(prev => ({
+        ...prev,
+        [field]: formattedPhone
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
 
     // Clear error when user starts typing
     if (errors[field]) {
@@ -212,9 +246,8 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
 
     // Phone number format validation
     if (formData.entryType === 'regular' && formData.clientPhone) {
-      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-      if (!phoneRegex.test(formData.clientPhone.replace(/\D/g, ''))) {
-        newErrors.clientPhone = 'Please enter a valid phone number';
+      if (!validatePhoneNumber(formData.clientPhone)) {
+        newErrors.clientPhone = 'Please enter a valid US phone number (10 digits)';
       }
     }
 
@@ -380,14 +413,18 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
                 type="tel"
                 value={formData.clientPhone}
                 onChange={(e) => handleInputChange('clientPhone', e.target.value)}
+                placeholder="(555) 123-4567"
+                maxLength={14}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
                   errors.clientPhone ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Enter client phone number"
               />
               {errors.clientPhone && (
                 <p className="mt-1 text-sm text-red-600">{errors.clientPhone}</p>
               )}
+              <p className="mt-1 text-xs text-gray-500">
+                US phone number format: (555) 123-4567
+              </p>
             </div>
           )}
         </div>
