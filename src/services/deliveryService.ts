@@ -123,11 +123,11 @@ export const deleteDeliveryFromFirestore = async (deliveryId: string): Promise<{
 export const getTodaysDeliveriesForStore = async (store: string, date: string): Promise<{ success: boolean; deliveries?: Delivery[]; error?: string }> => {
   try {
     const deliveriesRef = collection(db, DELIVERIES_COLLECTION);
+    // First filter by store and date, then sort client-side to avoid composite index requirement
     const q = query(
       deliveriesRef, 
       where('originStore', '==', store),
-      where('scheduledDate', '==', date),
-      orderBy('scheduledTime', 'asc')
+      where('scheduledDate', '==', date)
     );
     const querySnapshot = await getDocs(q);
     
@@ -140,6 +140,14 @@ export const getTodaysDeliveriesForStore = async (store: string, date: string): 
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
         updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt,
       } as Delivery);
+    });
+    
+    // Sort by scheduledTime client-side
+    deliveries.sort((a, b) => {
+      if (a.scheduledTime && b.scheduledTime) {
+        return a.scheduledTime.localeCompare(b.scheduledTime);
+      }
+      return 0;
     });
     
     return { success: true, deliveries };
