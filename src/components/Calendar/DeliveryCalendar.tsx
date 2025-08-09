@@ -264,16 +264,31 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
 
     // Helper function to get delivery duration in minutes
     const getDeliveryDuration = (delivery: Delivery): number => {
-      if (delivery.startTime && delivery.endTime) {
-        const startDate = new Date(`${delivery.scheduledDate}T${delivery.startTime}`);
-        const endDate = new Date(`${delivery.scheduledDate}T${delivery.endTime}`);
-        return Math.max(30, (endDate.getTime() - startDate.getTime()) / 60000);
+      // For internal events and equipment maintenance, use endTime if available
+      if (delivery.endTime && delivery.scheduledTime) {
+        const startMinutes = timeToMinutes(delivery.scheduledTime);
+        const endMinutes = timeToMinutes(delivery.endTime);
+        const duration = endMinutes - startMinutes;
+        return Math.max(30, duration);
       }
-      return Math.max(30, delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60);
+      
+      // For regular deliveries, use estimated travel time
+      if (delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance') {
+        return Math.max(30, delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60);
+      }
+      
+      // Default duration for internal events without endTime
+      return 60;
     };
 
     // Helper function to get delivery end time in minutes
     const getDeliveryEndTime = (delivery: Delivery): number => {
+      // If endTime is specified, use it directly
+      if (delivery.endTime) {
+        return timeToMinutes(delivery.endTime);
+      }
+      
+      // Otherwise calculate based on start time + duration
       const startMinutes = timeToMinutes(delivery.scheduledTime);
       const duration = getDeliveryDuration(delivery);
       return startMinutes + duration;
