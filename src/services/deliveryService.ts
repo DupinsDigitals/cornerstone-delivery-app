@@ -27,8 +27,8 @@ const DELIVERIES_COLLECTION = 'deliveries';
 export const getDeliveriesFromFirestore = async (): Promise<{ success: boolean; deliveries?: Delivery[]; error?: string }> => {
   try {
     const deliveriesRef = collection(db, DELIVERIES_COLLECTION);
-    const q = query(deliveriesRef, orderBy('scheduledDate', 'asc'), orderBy('scheduledTime', 'asc'));
-    const querySnapshot = await getDocs(q);
+    // Get all deliveries and sort client-side to avoid composite index requirement
+    const querySnapshot = await getDocs(deliveriesRef);
     
     const deliveries: Delivery[] = [];
     querySnapshot.forEach((doc) => {
@@ -40,6 +40,22 @@ export const getDeliveriesFromFirestore = async (): Promise<{ success: boolean; 
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
         updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt,
       } as Delivery);
+    });
+    
+    // Sort client-side by scheduledDate and scheduledTime
+    deliveries.sort((a, b) => {
+      // First sort by date
+      if (a.scheduledDate && b.scheduledDate) {
+        const dateCompare = a.scheduledDate.localeCompare(b.scheduledDate);
+        if (dateCompare !== 0) return dateCompare;
+      }
+      
+      // Then sort by time
+      if (a.scheduledTime && b.scheduledTime) {
+        return a.scheduledTime.localeCompare(b.scheduledTime);
+      }
+      
+      return 0;
     });
     
     return { success: true, deliveries };
