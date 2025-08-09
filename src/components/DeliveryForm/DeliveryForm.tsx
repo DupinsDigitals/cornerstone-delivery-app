@@ -696,28 +696,6 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
           )}
         </div>
 
-        {/* Estimated Travel Time */}
-        {formData.entryType === 'regular' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Clock className="w-4 h-4 inline mr-1" />
-              Estimated Total Time (minutes)
-            </label>
-            <input
-              type="number"
-              min="30"
-              step="15"
-              value={formData.estimatedTravelTime}
-              onChange={(e) => handleInputChange('estimatedTravelTime', parseInt(e.target.value) || 60)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Current estimate: {formatDuration(formData.estimatedTravelTime)} 
-              (includes round trip + loading/unloading time)
-            </p>
-          </div>
-        )}
-
         {/* Recurring Settings - Show for all entry types */}
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
