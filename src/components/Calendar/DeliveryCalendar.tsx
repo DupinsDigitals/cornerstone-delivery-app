@@ -854,7 +854,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
             {/* Current Time Arrow */}
             {showCurrentTimeLine && (
               <div
-                className="absolute right-0 flex items-center z-50"
+                className="absolute right-0 flex items-center z-5"
                 style={{
                   top: `${currentTimePosition.top}px`,
                   transform: 'translateY(-50%)'
@@ -882,7 +882,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
             {/* Current Time Line */}
             {showCurrentTimeLine && (
               <div
-                className="absolute left-0 right-0 border-t-2 border-red-600 z-40 pointer-events-none"
+                className="absolute left-0 right-0 border-t-2 border-red-600 z-5 pointer-events-none"
                 style={{
                   top: `${currentTimePosition.top}px`,
                   boxShadow: '0 1px 3px rgba(220, 38, 38, 0.3)'
