@@ -85,13 +85,15 @@ export const addDeliveryToFirestore = async (deliveryData: Partial<Delivery>): P
       scheduledWebhookSent: false,
       // Map field names for webhook compatibility
       customerName: cleanedData.clientName || cleanedData.customerName || null,
-      customerPhone: cleanedData.clientPhone || cleanedData.customerPhone || null,
+      customerPhone: cleanedData.clientPhone || cleanedData.customerPhone || cleanedData.phone || null,
       address: cleanedData.deliveryAddress || cleanedData.address || null,
       scheduledDateTime: cleanedData.scheduledDate && cleanedData.scheduledTime 
         ? `${cleanedData.scheduledDate} ${cleanedData.scheduledTime}`
         : null,
       invoiceNumber: cleanedData.invoiceNumber || null,
-      store: cleanedData.originStore || cleanedData.store || null
+      store: cleanedData.originStore || cleanedData.store || null,
+      // Add phone field mapping for webhook
+      phone: cleanedData.clientPhone || cleanedData.customerPhone || cleanedData.phone || null
     };
 
     const deliveriesRef = collection(db, DELIVERIES_COLLECTION);

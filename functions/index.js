@@ -103,7 +103,7 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       
       // Extract fields with comprehensive fallbacks and validation
       const customerName = deliveryData.customerName || deliveryData.clientName || 'Unknown Customer';
-      const customerPhone = deliveryData.customerPhone || deliveryData.clientPhone || deliveryData.destinationPhone || deliveryData.phone || '';
+      const customerPhone = deliveryData.customerPhone || deliveryData.clientPhone || deliveryData.phone || deliveryData.destinationPhone || '';
       const address = deliveryData.address || deliveryData.deliveryAddress || '';
       const scheduledDateTime = deliveryData.scheduledDateTime || 
                                (deliveryData.scheduledDate && deliveryData.scheduledTime ? 
@@ -117,7 +117,13 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
         address,
         scheduledDateTime,
         invoiceNumber,
-        store
+        store,
+        rawPhoneData: {
+          customerPhone: deliveryData.customerPhone,
+          clientPhone: deliveryData.clientPhone,
+          phone: deliveryData.phone,
+          destinationPhone: deliveryData.destinationPhone
+        }
       });
       
       // Validate required fields
@@ -129,6 +135,7 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
           rawData: {
             customerPhone: deliveryData.customerPhone,
             clientPhone: deliveryData.clientPhone,
+            phone: deliveryData.phone,
             address: deliveryData.address,
             deliveryAddress: deliveryData.deliveryAddress,
             scheduledDate: deliveryData.scheduledDate,
@@ -232,9 +239,6 @@ exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
     const executionId = `${deliveryId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     functions.logger.info(`🔄 Status change function started - Execution ID: ${executionId}, Delivery: ${deliveryId}`);
     
-    // Add delay to prevent race conditions
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     try {
       // Check if status changed to "GETTING LOAD" (case-insensitive)
       const beforeStatus = (beforeData.status || '').toLowerCase().trim();
@@ -243,61 +247,91 @@ exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
       if (beforeStatus !== 'getting load' && afterStatus === 'getting load') {
         functions.logger.info(`🚀 Status changed to GETTING LOAD for delivery ${deliveryId} - Execution: ${executionId}`);
         
-        // Check if webhook was already sent for this status change
-        if (afterData.gettingLoadWebhookSent === true) {
-          functions.logger.info(`❌ GETTING LOAD webhook already sent for delivery ${deliveryId}, skipping - Execution: ${executionId}`);
-          return null;
-        }
+        // Use transaction to prevent duplicate webhooks
+        let webhookShouldBeSent = false;
         
-        // Mark webhook as sent to prevent duplicates
-        await change.after.ref.update({
-          gettingLoadWebhookSent: true,
-          gettingLoadWebhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
-          gettingLoadWebhookExecutionId: executionId
-        });
-        
-        const webhookPayload = {
-          firstName: afterData.clientName || afterData.customerName || '',
-          phone: afterData.phone || afterData.customerPhone || '',
-          address: afterData.address || afterData.deliveryAddress || '',
-          invoice: afterData.invoiceNumber || '',
-          status: afterData.status || ''
-        };
-        
-        functions.logger.info(`📤 Sending GETTING LOAD webhook for delivery ${deliveryId} - Execution: ${executionId}`, webhookPayload);
-        
-        const response = await axios.post('https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/e74a90fe-2813-4631-93e3-f3d0aaf27968', webhookPayload, {
-          timeout: 8000,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.status >= 200 && response.status < 300) {
-          functions.logger.info(`✅ GETTING LOAD webhook sent successfully for delivery ${deliveryId} - Execution: ${executionId}`);
+        await db.runTransaction(async (transaction) => {
+          // Re-read the document within the transaction
+          const docRef = change.after.ref;
+          const freshDoc = await transaction.get(docRef);
           
-          // Mark as successfully sent
-          await change.after.ref.update({
-            gettingLoadWebhookSentSuccessfully: true,
-            gettingLoadWebhookResponse: response.status
+          if (!freshDoc.exists) {
+            functions.logger.warn(`❌ Document ${deliveryId} no longer exists, skipping webhook - Execution: ${executionId}`);
+            return;
+          }
+          
+          const freshData = freshDoc.data();
+          
+          // Check if webhook was already sent
+          if (freshData.gettingLoadWebhookSent === true) {
+            functions.logger.info(`❌ GETTING LOAD webhook already sent for delivery ${deliveryId} (detected in transaction), skipping - Execution: ${executionId}`);
+            return;
+          }
+          
+          // Mark webhook as sent atomically
+          transaction.update(docRef, {
+            gettingLoadWebhookSent: true,
+            gettingLoadWebhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
+            gettingLoadWebhookExecutionId: executionId
           });
-        } else {
-          functions.logger.error(`❌ GETTING LOAD webhook failed for delivery ${deliveryId}. Status: ${response.status} - Execution: ${executionId}`, response.data);
+          
+          webhookShouldBeSent = true;
+          functions.logger.info(`✅ Transaction completed: marked GETTING LOAD webhook as sent for delivery ${deliveryId} - Execution: ${executionId}`);
+        });
+        
+        // Only send webhook if transaction succeeded
+        if (webhookShouldBeSent) {
+          const webhookPayload = {
+            firstName: afterData.clientName || afterData.customerName || '',
+            phone: afterData.phone || afterData.customerPhone || afterData.clientPhone || '',
+            address: afterData.address || afterData.deliveryAddress || '',
+            invoice: afterData.invoiceNumber || '',
+            status: afterData.status || ''
+          };
+          
+          functions.logger.info(`📤 Sending GETTING LOAD webhook for delivery ${deliveryId} - Execution: ${executionId}`, webhookPayload);
+          
+          const response = await axios.post('https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/e74a90fe-2813-4631-93e3-f3d0aaf27968', webhookPayload, {
+            timeout: 8000,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.status >= 200 && response.status < 300) {
+            functions.logger.info(`✅ GETTING LOAD webhook sent successfully for delivery ${deliveryId} - Execution: ${executionId}`);
+            
+            // Mark as successfully sent
+            await change.after.ref.update({
+              gettingLoadWebhookSentSuccessfully: true,
+              gettingLoadWebhookResponse: response.status,
+              gettingLoadWebhookResponseData: response.data
+            });
+          } else {
+            functions.logger.error(`❌ GETTING LOAD webhook failed for delivery ${deliveryId}. Status: ${response.status} - Execution: ${executionId}`, response.data);
+            
+            // Mark as failed
+            await change.after.ref.update({
+              gettingLoadWebhookSentSuccessfully: false,
+              gettingLoadWebhookError: `HTTP ${response.status}: ${JSON.stringify(response.data)}`,
+              gettingLoadWebhookErrorAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+          }
         }
       } else {
         functions.logger.info(`ℹ️ Status change detected but not GETTING LOAD (${beforeStatus} -> ${afterStatus}) for delivery ${deliveryId} - Execution: ${executionId}`);
       }
       
     } catch (error) {
-      // Clean up flag on error
+      // Mark as failed with error details
       try {
         await change.after.ref.update({
-          gettingLoadWebhookSent: false,
-          gettingLoadWebhookError: error.message,
+          gettingLoadWebhookSentSuccessfully: false,
+          gettingLoadWebhookError: error.message || 'Unknown error',
           gettingLoadWebhookErrorAt: admin.firestore.FieldValue.serverTimestamp()
         });
-      } catch (cleanupError) {
-        functions.logger.error(`❌ Error cleaning up webhook flag for delivery ${deliveryId} - Execution: ${executionId}:`, cleanupError.message);
+      } catch (updateError) {
+        functions.logger.error(`❌ Failed to update error status for delivery ${deliveryId}:`, updateError);
       }
       
       if (error.code === 'ECONNABORTED') {
@@ -306,7 +340,9 @@ exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
         functions.logger.error(`❌ GETTING LOAD webhook failed for delivery ${deliveryId}. Status: ${error.response.status} - Execution: ${executionId}`, error.response.data);
       } else {
         functions.logger.error(`💥 Error sending GETTING LOAD webhook for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
+        functions.logger.error(`💥 Full error details:`, error);
       }
+      // Do not retry automatically - just log the error
     }
     
     functions.logger.info(`🏁 Status change function completed - Execution: ${executionId}`);
