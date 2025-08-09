@@ -353,8 +353,22 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
       column.forEach((delivery) => {
         // Always use scheduledTime for vertical positioning
         const startTime = delivery.scheduledTime;
-        const startDate = new Date(`${delivery.scheduledDate}T${startTime}`);
-        const durationInMinutes = delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60;
+        const endTime = delivery.endTime;
+        
+        let startDate, endDate, durationInMinutes;
+        
+        if (startTime && endTime) {
+          // Use actual start and end times if both are available
+          startDate = new Date(`${delivery.scheduledDate}T${startTime}`);
+          endDate = new Date(`${delivery.scheduledDate}T${endTime}`);
+          durationInMinutes = (endDate.getTime() - startDate.getTime()) / 60000;
+        } else {
+          // Fallback to estimated duration
+          startDate = new Date(`${delivery.scheduledDate}T${startTime}`);
+          const estimatedMinutes = delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60;
+          endDate = new Date(startDate.getTime() + (estimatedMinutes * 60 * 1000));
+          durationInMinutes = estimatedMinutes;
+        }
         
         const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
         const finalDuration = Math.max(30, durationInMinutes); // Minimum 30 minutes
