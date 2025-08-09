@@ -37,7 +37,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
     scheduledTime: editingDelivery?.scheduledTime || '08:00',
     endTime: editingDelivery?.endTime || '',
     estimatedTravelTime: editingDelivery?.estimatedTravelTime || 60,
-    entryType: editingDelivery?.entryType || 'delivery',
+    entryType: editingDelivery?.entryType || 'regular',
     type: editingDelivery?.type || 'delivery'
   });
 
@@ -60,7 +60,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
         scheduledTime: editingDelivery.scheduledTime || '08:00',
         endTime: editingDelivery.endTime || '',
         estimatedTravelTime: editingDelivery.estimatedTravelTime || 60,
-        entryType: editingDelivery.entryType || 'delivery',
+        entryType: editingDelivery.entryType || 'regular',
         type: editingDelivery.type || 'delivery'
       });
     }
@@ -68,7 +68,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
 
   // Initialize Google Places Autocomplete
   useEffect(() => {
-    if (window.google && addressInputRef.current) {
+    if (window.google && addressInputRef.current && formData.entryType === 'regular') {
       const autocomplete = new window.google.maps.places.Autocomplete(
         addressInputRef.current,
         {
@@ -90,7 +90,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
         }
       });
     }
-  }, []);
+  }, [formData.entryType]);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({
@@ -104,7 +104,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
     }
 
     // Auto-calculate end time when scheduled time or estimated time changes
-    if (field === 'scheduledTime' || field === 'estimatedTravelTime') {
+    if ((field === 'scheduledTime' || field === 'estimatedTravelTime') && formData.entryType === 'regular') {
       const schedTime = field === 'scheduledTime' ? value as string : formData.scheduledTime;
       const estTime = field === 'estimatedTravelTime' ? value as number : formData.estimatedTravelTime;
       
@@ -176,19 +176,19 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
       newErrors.clientName = 'Client name is required';
     }
 
-    if (!formData.clientPhone.trim()) {
+    if (formData.entryType === 'regular' && !formData.clientPhone.trim()) {
       newErrors.clientPhone = 'Client phone is required';
     }
 
-    if (!formData.deliveryAddress.trim()) {
+    if (formData.entryType === 'regular' && !formData.deliveryAddress.trim()) {
       newErrors.deliveryAddress = 'Delivery address is required';
     }
 
-    if (!formData.invoiceNumber.trim()) {
+    if (formData.entryType === 'regular' && !formData.invoiceNumber.trim()) {
       newErrors.invoiceNumber = 'Invoice number is required';
     }
 
-    if (!formData.materialDescription.trim()) {
+    if (formData.entryType === 'regular' && !formData.materialDescription.trim()) {
       newErrors.materialDescription = 'Material description is required';
     }
 
@@ -200,14 +200,16 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
       newErrors.scheduledTime = 'Scheduled time is required';
     }
 
-    if (formData.numberOfTrips < 1) {
+    if (formData.entryType === 'regular' && formData.numberOfTrips < 1) {
       newErrors.numberOfTrips = 'Number of trips must be at least 1';
     }
 
     // Phone number format validation
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    if (formData.clientPhone && !phoneRegex.test(formData.clientPhone.replace(/\D/g, ''))) {
+    if (formData.entryType === 'regular' && formData.clientPhone) {
+      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+      if (!phoneRegex.test(formData.clientPhone.replace(/\D/g, ''))) {
       newErrors.clientPhone = 'Please enter a valid phone number';
+      }
     }
 
     // Date validation - cannot be in the past
@@ -279,11 +281,34 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
     }
   };
 
+  // Get form title based on entry type
+  const getFormTitle = () => {
+    if (editingDelivery) {
+      switch (formData.entryType) {
+        case 'internal':
+          return 'Edit Internal Event';
+        case 'equipmentMaintenance':
+          return 'Edit Equipment Maintenance';
+        default:
+          return 'Edit Delivery';
+      }
+    } else {
+      switch (formData.entryType) {
+        case 'internal':
+          return 'Schedule Internal Event';
+        case 'equipmentMaintenance':
+          return 'Schedule Equipment Maintenance';
+        default:
+          return 'Schedule New Delivery';
+      }
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900">
-          {editingDelivery ? 'Edit Delivery' : 'Schedule New Delivery'}
+          {getFormTitle()}
         </h2>
         <button
           onClick={onCancel}
@@ -295,12 +320,31 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Entry Type Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <FileText className="w-4 h-4 inline mr-1" />
+            Entry Type *
+          </label>
+          <select
+            value={formData.entryType}
+            onChange={(e) => handleInputChange('entryType', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="regular">Regular Delivery</option>
+            <option value="internal">Internal Event</option>
+            <option value="equipmentMaintenance">Equipment Maintenance</option>
+          </select>
+        </div>
+
         {/* Client Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className={`grid grid-cols-1 ${formData.entryType === 'regular' ? 'md:grid-cols-2' : ''} gap-6`}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <User className="w-4 h-4 inline mr-1" />
-              Client Name *
+              {formData.entryType === 'internal' ? 'Event Name *' : 
+               formData.entryType === 'equipmentMaintenance' ? 'Equipment/Task Name *' : 
+               'Client Name *'}
             </label>
             <input
               type="text"
@@ -309,13 +353,18 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
                 errors.clientName ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Enter client name"
+              placeholder={
+                formData.entryType === 'internal' ? 'Enter event name' :
+                formData.entryType === 'equipmentMaintenance' ? 'Enter equipment/task name' :
+                'Enter client name'
+              }
             />
             {errors.clientName && (
               <p className="mt-1 text-sm text-red-600">{errors.clientName}</p>
             )}
           </div>
 
+          {formData.entryType === 'regular' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Phone className="w-4 h-4 inline mr-1" />
@@ -334,9 +383,11 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
               <p className="mt-1 text-sm text-red-600">{errors.clientPhone}</p>
             )}
           </div>
+          )}
         </div>
 
         {/* Delivery Address */}
+        {formData.entryType === 'regular' && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <MapPin className="w-4 h-4 inline mr-1" />
@@ -370,13 +421,14 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             <p className="mt-1 text-sm text-red-600">{errors.deliveryAddress}</p>
           )}
         </div>
+        )}
 
         {/* Store and Truck Selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <MapPin className="w-4 h-4 inline mr-1" />
-              Origin Store *
+              {formData.entryType === 'equipmentMaintenance' ? 'Equipment Location *' : 'Origin Store *'}
             </label>
             <select
               value={formData.originStore}
@@ -391,7 +443,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Truck className="w-4 h-4 inline mr-1" />
-              Truck Type *
+              {formData.entryType === 'equipmentMaintenance' ? 'Equipment Type *' : 'Truck Type *'}
             </label>
             <select
               value={formData.truckType}
@@ -408,6 +460,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
         </div>
 
         {/* Invoice and Material */}
+        {formData.entryType === 'regular' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -447,8 +500,10 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             )}
           </div>
         </div>
+        )}
 
         {/* Material Description */}
+        {formData.entryType === 'regular' && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Package className="w-4 h-4 inline mr-1" />
@@ -467,9 +522,10 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             <p className="mt-1 text-sm text-red-600">{errors.materialDescription}</p>
           )}
         </div>
+        )}
 
         {/* Schedule Information */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 ${formData.entryType === 'regular' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-6`}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Calendar className="w-4 h-4 inline mr-1" />
@@ -506,6 +562,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             )}
           </div>
 
+          {formData.entryType === 'regular' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Clock className="w-4 h-4 inline mr-1" />
@@ -521,9 +578,11 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
               Auto-calculated based on estimated time
             </p>
           </div>
+          )}
         </div>
 
         {/* Estimated Travel Time */}
+        {formData.entryType === 'regular' && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Clock className="w-4 h-4 inline mr-1" />
@@ -542,19 +601,26 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             (includes round trip + loading/unloading time)
           </p>
         </div>
+        )}
 
         {/* Additional Notes */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <FileText className="w-4 h-4 inline mr-1" />
-            Additional Notes
+            {formData.entryType === 'internal' ? 'Event Details' :
+             formData.entryType === 'equipmentMaintenance' ? 'Maintenance Notes' :
+             'Additional Notes'}
           </label>
           <textarea
             value={formData.additionalNotes}
             onChange={(e) => handleInputChange('additionalNotes', e.target.value)}
             rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-            placeholder="Any additional notes or special instructions"
+            placeholder={
+              formData.entryType === 'internal' ? 'Describe the internal event details' :
+              formData.entryType === 'equipmentMaintenance' ? 'Describe the maintenance work needed' :
+              'Any additional notes or special instructions'
+            }
           />
         </div>
 
@@ -580,7 +646,14 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             ) : (
               <>
                 <Save className="w-4 h-4 mr-2" />
-                {editingDelivery ? 'Update Delivery' : 'Schedule Delivery'}
+                {editingDelivery ? 
+                  (formData.entryType === 'internal' ? 'Update Event' :
+                   formData.entryType === 'equipmentMaintenance' ? 'Update Maintenance' :
+                   'Update Delivery') :
+                  (formData.entryType === 'internal' ? 'Schedule Event' :
+                   formData.entryType === 'equipmentMaintenance' ? 'Schedule Maintenance' :
+                   'Schedule Delivery')
+                }
               </>
             )}
           </button>
