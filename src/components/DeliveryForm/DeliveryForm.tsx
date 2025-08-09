@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, X, Calendar, Clock, MapPin, Phone, User, FileText, Package, Truck, Calculator } from 'lucide-react';
+import { Save, X, Calendar, Clock, MapPin, Phone, User, FileText, Package, Truck } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
 import { useAuth } from '../../contexts/AuthContext';
 import { saveDeliveryToFirestore } from '../../services/deliveryService';
 import { TRUCK_TYPES, getTruckColor, getContrastTextColor } from '../../utils/truckTypes';
-import { calculateTravelTime, validateAddress } from '../../utils/googleMaps';
 
 interface DeliveryFormProps {
   onSubmit: (delivery: Delivery) => void;
@@ -38,7 +37,6 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
 }) => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isCalculatingTime, setIsCalculatingTime] = useState(false);
   const addressInputRef = useRef<HTMLInputElement>(null);
 
   // Format phone number to US format
@@ -200,49 +198,6 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
     }
   };
 
-  const handleCalculateTravelTime = async () => {
-    if (!formData.deliveryAddress || !formData.originStore) {
-      setErrors(prev => ({
-        ...prev,
-        deliveryAddress: 'Please enter a delivery address first'
-      }));
-      return;
-    }
-
-    if (!validateAddress(formData.deliveryAddress)) {
-      setErrors(prev => ({
-        ...prev,
-        deliveryAddress: 'Please enter a valid address'
-      }));
-      return;
-    }
-
-    setIsCalculatingTime(true);
-    setErrors(prev => ({ ...prev, deliveryAddress: '' }));
-
-    try {
-      const result = await calculateTravelTime(
-        formData.originStore as 'Framingham' | 'Marlborough',
-        formData.deliveryAddress
-      );
-
-      if (result.success && result.travelTimeMinutes) {
-        handleInputChange('estimatedTravelTime', result.travelTimeMinutes);
-      } else {
-        setErrors(prev => ({
-          ...prev,
-          deliveryAddress: result.error || 'Could not calculate travel time'
-        }));
-      }
-    } catch (error) {
-      setErrors(prev => ({
-        ...prev,
-        deliveryAddress: 'Error calculating travel time'
-      }));
-    } finally {
-      setIsCalculatingTime(false);
-    }
-  };
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -555,30 +510,16 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
               <MapPin className="w-4 h-4 inline mr-1" />
               Delivery Address *
             </label>
-            <div className="flex space-x-2">
-              <input
-                ref={addressInputRef}
-                type="text"
-                value={formData.deliveryAddress}
-                onChange={(e) => handleInputChange('deliveryAddress', e.target.value)}
-                className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.deliveryAddress ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter delivery address"
-              />
-              <button
-                type="button"
-                onClick={handleCalculateTravelTime}
-                disabled={isCalculatingTime || !formData.deliveryAddress}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              >
-                {isCalculatingTime ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Calculator className="w-4 h-4" />
-                )}
-              </button>
-            </div>
+            <input
+              ref={addressInputRef}
+              type="text"
+              value={formData.deliveryAddress}
+              onChange={(e) => handleInputChange('deliveryAddress', e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                errors.deliveryAddress ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Enter delivery address"
+            />
             {errors.deliveryAddress && (
               <p className="mt-1 text-sm text-red-600">{errors.deliveryAddress}</p>
             )}
