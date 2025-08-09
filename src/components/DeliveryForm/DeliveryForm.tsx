@@ -25,18 +25,18 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
   // Initialize form data with existing delivery data or defaults
   const [formData, setFormData] = useState({
     clientName: editingDelivery?.clientName || '',
-    clientPhone: editingDelivery?.clientPhone || editingDelivery?.phone || editingDelivery?.customerPhone || '',
-    deliveryAddress: editingDelivery?.deliveryAddress || editingDelivery?.address || '',
+    clientPhone: editingDelivery?.clientPhone || '',
+    deliveryAddress: editingDelivery?.deliveryAddress || '',
     originStore: editingDelivery?.originStore || user?.assignedStore || 'Framingham',
     truckType: editingDelivery?.truckType || 'Flatbed',
     invoiceNumber: editingDelivery?.invoiceNumber || '',
-    materialDescription: editingDelivery?.materialDescription || editingDelivery?.material || editingDelivery?.description || '',
-    numberOfTrips: editingDelivery?.numberOfTrips || editingDelivery?.trips || 1,
-    additionalNotes: editingDelivery?.additionalNotes || editingDelivery?.notes || '',
+    materialDescription: editingDelivery?.materialDescription || '',
+    numberOfTrips: editingDelivery?.numberOfTrips || 1,
+    additionalNotes: editingDelivery?.additionalNotes || '',
     scheduledDate: editingDelivery?.scheduledDate || new Date().toISOString().split('T')[0],
     scheduledTime: editingDelivery?.scheduledTime || '08:00',
     endTime: editingDelivery?.endTime || '',
-    estimatedTravelTime: editingDelivery?.estimatedTravelTime || editingDelivery?.estimatedTimeMinutes || 60,
+    estimatedTravelTime: editingDelivery?.estimatedTravelTime || 60,
     entryType: editingDelivery?.entryType || 'delivery',
     type: editingDelivery?.type || 'delivery'
   });
@@ -48,18 +48,18 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
     if (editingDelivery) {
       setFormData({
         clientName: editingDelivery.clientName || '',
-        clientPhone: editingDelivery.clientPhone || editingDelivery.phone || editingDelivery.customerPhone || '',
-        deliveryAddress: editingDelivery.deliveryAddress || editingDelivery.address || '',
+        clientPhone: editingDelivery.clientPhone || '',
+        deliveryAddress: editingDelivery.deliveryAddress || '',
         originStore: editingDelivery.originStore || user?.assignedStore || 'Framingham',
         truckType: editingDelivery.truckType || 'Flatbed',
         invoiceNumber: editingDelivery.invoiceNumber || '',
-        materialDescription: editingDelivery.materialDescription || editingDelivery.material || editingDelivery.description || '',
-        numberOfTrips: editingDelivery.numberOfTrips || editingDelivery.trips || 1,
-        additionalNotes: editingDelivery.additionalNotes || editingDelivery.notes || '',
+        materialDescription: editingDelivery.materialDescription || '',
+        numberOfTrips: editingDelivery.numberOfTrips || 1,
+        additionalNotes: editingDelivery.additionalNotes || '',
         scheduledDate: editingDelivery.scheduledDate || new Date().toISOString().split('T')[0],
         scheduledTime: editingDelivery.scheduledTime || '08:00',
         endTime: editingDelivery.endTime || '',
-        estimatedTravelTime: editingDelivery.estimatedTravelTime || editingDelivery.estimatedTimeMinutes || 60,
+        estimatedTravelTime: editingDelivery.estimatedTravelTime || 60,
         entryType: editingDelivery.entryType || 'delivery',
         type: editingDelivery.type || 'delivery'
       });
