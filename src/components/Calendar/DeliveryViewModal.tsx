@@ -331,9 +331,9 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             <MapPin className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Address:</span>
-              {delivery.deliveryAddress ? (
+              {(delivery.deliveryAddress || delivery.address) ? (
                 <p className="text-gray-900 break-words">
-                  {delivery.deliveryAddress}
+                  {delivery.deliveryAddress || delivery.address}
                 </p>
               ) : (
                 <p className="text-gray-500 italic">Address not provided</p>
@@ -348,13 +348,13 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             <Phone className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Client Phone Number:</span>
-              {delivery.clientPhone ? (
+              {(delivery.clientPhone || delivery.phone || delivery.customerPhone) ? (
                 <a
-                  href={`tel:${delivery.clientPhone.replace(/\D/g, '')}`}
+                  href={`tel:${(delivery.clientPhone || delivery.phone || delivery.customerPhone || '').replace(/\D/g, '')}`}
                   className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors font-medium block mt-1"
                   title="Call client"
                 >
-                  {delivery.clientPhone}
+                  {delivery.clientPhone || delivery.phone || delivery.customerPhone}
                 </a>
               ) : (
                 <p className="text-gray-500 italic mt-1">Phone number not provided</p>
@@ -369,7 +369,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             <Truck className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Number of Trips:</span>
-              <p className="text-gray-900">{delivery.numberOfTrips || 1}</p>
+              <p className="text-gray-900">{delivery.numberOfTrips || delivery.trips || 1}</p>
             </div>
           </div>
           )}
@@ -380,7 +380,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             <Package className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Material Description:</span>
-              {delivery.materialDescription ? (
+              {(delivery.materialDescription || delivery.material || delivery.description) ? (
                 <p className="text-gray-900 break-words mt-1">{delivery.materialDescription}</p>
               ) : (
                 <p className="text-gray-500 italic mt-1">No description provided</p>
@@ -390,14 +390,14 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
           )}
 
           {/* Additional Notes */}
-          {delivery.additionalNotes && (
+          {(delivery.additionalNotes || delivery.notes) && (
             <div className="flex items-start space-x-3">
               <FileText className="w-4 h-4 text-gray-400 mt-0.5" />
               <div>
                 <span className="text-sm font-medium text-gray-700">
                   {delivery.entryType === 'equipmentMaintenance' ? 'Maintenance Notes:' : 'Additional Notes:'}
                 </span>
-                <p className="text-gray-900 whitespace-pre-wrap break-words mt-1">{delivery.additionalNotes}</p>
+                <p className="text-gray-900 whitespace-pre-wrap break-words mt-1">{delivery.additionalNotes || delivery.notes}</p>
               </div>
             </div>
           )}
