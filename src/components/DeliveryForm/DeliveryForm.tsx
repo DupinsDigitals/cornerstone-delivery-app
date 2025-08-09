@@ -341,39 +341,6 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             <option value="internal">Internal Event</option>
             <option value="equipmentMaintenance">Equipment Maintenance</option>
           </select>
-          
-          {/* Truck Color Visual Indicators */}
-          <div className="mt-3">
-            <div className="text-sm font-medium text-gray-700 mb-2">
-              {formData.originStore} Truck Types:
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(TRUCK_TYPES[formData.originStore as keyof typeof TRUCK_TYPES] || []).map((truck) => {
-                const truckColor = getTruckColor(formData.originStore, truck);
-                const textColor = getContrastTextColor(truckColor);
-                const isSelected = formData.truckType === truck;
-                const shortName = truck.replace(' (22 tons)', '').replace(' (10 tons)', '');
-                
-                return (
-                  <button
-                    key={truck}
-                    type="button"
-                    onClick={() => handleInputChange('truckType', truck)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      isSelected ? 'ring-2 ring-blue-400 ring-offset-1' : ''
-                    }`}
-                    style={{
-                      backgroundColor: truckColor,
-                      color: textColor
-                    }}
-                    title={truck}
-                  >
-                    {shortName}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
 
         {/* Client Information */}
@@ -462,41 +429,78 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
           </div>
         )}
 
-        {/* Store and Truck Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="w-4 h-4 inline mr-1" />
-              {formData.entryType === 'equipmentMaintenance' ? 'Equipment Location *' : 'Origin Store *'}
-            </label>
-            <select
-              value={formData.originStore}
-              onChange={(e) => handleInputChange('originStore', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              <option value="Framingham">Framingham</option>
-              <option value="Marlborough">Marlborough</option>
-            </select>
-          </div>
+        {/* Store and Truck Selection - Only for Regular Deliveries and Equipment Maintenance */}
+        {formData.entryType !== 'internal' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <MapPin className="w-4 h-4 inline mr-1" />
+                {formData.entryType === 'equipmentMaintenance' ? 'Equipment Location *' : 'Origin Store *'}
+              </label>
+              <select
+                value={formData.originStore}
+                onChange={(e) => handleInputChange('originStore', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="Framingham">Framingham</option>
+                <option value="Marlborough">Marlborough</option>
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Truck className="w-4 h-4 inline mr-1" />
-              {formData.entryType === 'equipmentMaintenance' ? 'Equipment Type *' : 'Truck Type *'}
-            </label>
-            <select
-              value={formData.truckType}
-              onChange={(e) => handleInputChange('truckType', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              {(TRUCK_TYPES[formData.originStore as keyof typeof TRUCK_TYPES] || []).map((truck) => (
-                <option key={truck} value={truck}>
-                  {truck}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Truck className="w-4 h-4 inline mr-1" />
+                {formData.entryType === 'equipmentMaintenance' ? 'Equipment Type *' : 'Truck Type *'}
+              </label>
+              <select
+                value={formData.truckType}
+                onChange={(e) => handleInputChange('truckType', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                {(TRUCK_TYPES[formData.originStore as keyof typeof TRUCK_TYPES] || []).map((truck) => (
+                  <option key={truck} value={truck}>
+                    {truck}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Truck Color Visual Indicators - Only for Regular Deliveries */}
+            {formData.entryType === 'regular' && (
+              <div className="col-span-2 mt-3">
+                <div className="text-sm font-medium text-gray-700 mb-2">
+                  {formData.originStore} Truck Types:
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(TRUCK_TYPES[formData.originStore as keyof typeof TRUCK_TYPES] || []).map((truck) => {
+                    const truckColor = getTruckColor(formData.originStore, truck);
+                    const textColor = getContrastTextColor(truckColor);
+                    const isSelected = formData.truckType === truck;
+                    const shortName = truck.replace(' (22 tons)', '').replace(' (10 tons)', '');
+                    
+                    return (
+                      <button
+                        key={truck}
+                        type="button"
+                        onClick={() => handleInputChange('truckType', truck)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isSelected ? 'ring-2 ring-blue-400 ring-offset-1' : ''
+                        }`}
+                        style={{
+                          backgroundColor: truckColor,
+                          color: textColor
+                        }}
+                        title={truck}
+                      >
+                        {shortName}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Invoice and Material */}
         {formData.entryType === 'regular' && (
@@ -564,7 +568,11 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
         )}
 
         {/* Schedule Information */}
-        <div className={`grid grid-cols-1 ${formData.entryType === 'regular' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-6`}>
+        <div className={`grid grid-cols-1 ${
+          formData.entryType === 'regular' ? 'md:grid-cols-3' : 
+          formData.entryType === 'internal' ? 'md:grid-cols-3' : 
+          'md:grid-cols-2'
+        } gap-6`}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Calendar className="w-4 h-4 inline mr-1" />
@@ -601,7 +609,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             )}
           </div>
 
-          {formData.entryType === 'regular' && (
+          {(formData.entryType === 'regular' || formData.entryType === 'internal') && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Clock className="w-4 h-4 inline mr-1" />
@@ -614,7 +622,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <p className="mt-1 text-xs text-gray-500">
-                Auto-calculated based on estimated time
+                {formData.entryType === 'internal' ? 'Event end time' : 'Auto-calculated based on estimated time'}
               </p>
             </div>
           )}
