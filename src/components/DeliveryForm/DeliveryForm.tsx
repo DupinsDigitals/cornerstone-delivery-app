@@ -38,7 +38,10 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
     endTime: editingDelivery?.endTime || '',
     estimatedTravelTime: editingDelivery?.estimatedTravelTime || 60,
     entryType: editingDelivery?.entryType || 'regular',
-    type: editingDelivery?.type || 'delivery'
+    type: editingDelivery?.type || 'delivery',
+    repeat: editingDelivery?.repeat || 'none',
+    repeatUntil: editingDelivery?.repeatUntil || '',
+    isRecurring: editingDelivery?.isRecurring || false
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -61,7 +64,10 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
         endTime: editingDelivery.endTime || '',
         estimatedTravelTime: editingDelivery.estimatedTravelTime || 60,
         entryType: editingDelivery.entryType || 'regular',
-        type: editingDelivery.type || 'delivery'
+        type: editingDelivery.type || 'delivery',
+        repeat: editingDelivery.repeat || 'none',
+        repeatUntil: editingDelivery.repeatUntil || '',
+        isRecurring: editingDelivery.isRecurring || false
       });
     }
   }, [editingDelivery, user?.assignedStore]);
