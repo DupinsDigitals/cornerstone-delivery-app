@@ -168,6 +168,17 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
 
+    // Update truck type when origin store changes to ensure valid truck selection
+    if (field === 'originStore') {
+      const availableTrucks = TRUCK_TYPES[value as keyof typeof TRUCK_TYPES] || [];
+      if (availableTrucks.length > 0 && !availableTrucks.includes(formData.truckType)) {
+        setFormData(prev => ({
+          ...prev,
+          truckType: availableTrucks[0] // Select first available truck for the store
+        }));
+      }
+    }
+
     // Auto-calculate end time when scheduled time or estimated time changes
     if ((field === 'scheduledTime' || field === 'estimatedTravelTime') && formData.entryType === 'regular') {
       const schedTime = field === 'scheduledTime' ? value as string : formData.scheduledTime;
