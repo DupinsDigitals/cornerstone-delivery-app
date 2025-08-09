@@ -283,6 +283,74 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // Generate recurring deliveries/events
+  const generateRecurringEntries = (baseData: Partial<Delivery>): Partial<Delivery>[] => {
+    const entries: Partial<Delivery>[] = [];
+    
+    if (formData.repeat === 'none' || !formData.repeatUntil) {
+      return [baseData];
+    }
+    
+    const startDate = new Date(formData.scheduledDate + 'T00:00:00');
+    const endDate = new Date(formData.repeatUntil + 'T00:00:00');
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      const shouldInclude = (() => {
+        switch (formData.repeat) {
+          case 'daily':
+            return true;
+          case 'weekly':
+            // Monday to Friday (1-5), excluding weekends
+            const dayOfWeek = currentDate.getDay();
+            return dayOfWeek >= 1 && dayOfWeek <= 5;
+          case 'monthly':
+            // Same day of month
+            return currentDate.getDate() === startDate.getDate();
+          case 'annually':
+            // Same day and month
+            return currentDate.getDate() === startDate.getDate() && 
+                   currentDate.getMonth() === startDate.getMonth();
+          default:
+            return false;
+        }
+      })();
+      
+      if (shouldInclude) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        entries.push({
+          ...baseData,
+          id: undefined, // Let Firestore generate new IDs
+          scheduledDate: dateStr,
+          isRecurring: true,
+          parentEventId: baseData.id || undefined,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+      
+      // Increment date based on repeat type
+      switch (formData.repeat) {
+        case 'daily':
+          currentDate.setDate(currentDate.getDate() + 1);
+          break;
+        case 'weekly':
+          currentDate.setDate(currentDate.getDate() + 1);
+          break;
+        case 'monthly':
+          currentDate.setMonth(currentDate.getMonth() + 1);
+          break;
+        case 'annually':
+          currentDate.setFullYear(currentDate.getFullYear() + 1);
+          break;
+        default:
+          currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+    
+    return entries;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -293,7 +361,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
     setIsLoading(true);
 
     try {
-      const deliveryData: Partial<Delivery> = {
+      const baseDeliveryData: Partial<Delivery> = {
         ...formData,
         id: editingDelivery?.id,
         status: editingDelivery?.status || 'PENDING',
@@ -314,12 +382,27 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
         editHistory: editingDelivery?.editHistory || []
       };
 
-      const result = await saveDeliveryToFirestore(deliveryData);
+      // Generate all recurring entries
+      const allEntries = generateRecurringEntries(baseDeliveryData);
+      
+      console.log(`📅 Creating ${allEntries.length} entries for ${formData.repeat} repetition`);
+      
+      // Save all entries
+      let successCount = 0;
+      for (const entry of allEntries) {
+        const result = await saveDeliveryToFirestore(entry);
+        if (result.success) {
+          successCount++;
+        } else {
+          console.error('Failed to save entry:', result.error);
+        }
+      }
 
-      if (result.success) {
-        onSubmit(deliveryData as Delivery);
+      if (successCount > 0) {
+        console.log(`✅ Successfully created ${successCount} out of ${allEntries.length} entries`);
+        onSubmit(baseDeliveryData as Delivery);
       } else {
-        alert('Failed to save delivery: ' + (result.error || 'Unknown error'));
+        alert(`Failed to save entries. Created ${successCount} out of ${allEntries.length} entries.`);
       }
     } catch (error) {
       console.error('Error saving delivery:', error);
