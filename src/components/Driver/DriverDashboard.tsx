@@ -31,6 +31,21 @@ export const DriverDashboard: React.FC = () => {
     isOpen: false
   });
 
+  // Safe string conversion helper
+  const safeString = (value: any): string => {
+    if (value === null || value === undefined) return '';
+    return String(value);
+  };
+
+  // Safe get owner name helper
+  const getSafeOwnerName = (delivery: Delivery): string => {
+    const lastUpdatedByName = safeString(delivery.lastUpdatedByName);
+    const startedBy = safeString(delivery.startedBy);
+    const startedByUsername = startedBy ? startedBy.split('@')[0] : '';
+    
+    return lastUpdatedByName || startedByUsername || 'UNKNOWN';
+  };
+
   // Status progression mapping
   const getNextStatus = (currentStatus: string): string => {
     switch (currentStatus) {
@@ -109,6 +124,7 @@ export const DriverDashboard: React.FC = () => {
 
   // Check if user is a Master Driver (read-only access)
   const isMasterDriver = user?.role === 'masterDriver';
+  
   const loadTodaysDeliveries = async () => {
     // For Master Driver, use selected store; for regular driver, use assigned store
     const storeToLoad = isMasterDriver ? selectedStore : user?.assignedStore;
@@ -136,8 +152,8 @@ export const DriverDashboard: React.FC = () => {
         // Sort deliveries by scheduled time (earliest first)
         const sortedDeliveries = filteredDeliveries.sort((a, b) => {
           // Parse time strings (HH:MM format) for comparison
-          const timeA = a.scheduledTime.split(':').map(Number);
-          const timeB = b.scheduledTime.split(':').map(Number);
+          const timeA = (a.scheduledTime || '00:00').split(':').map(Number);
+          const timeB = (b.scheduledTime || '00:00').split(':').map(Number);
           
           // Convert to minutes for easy comparison
           const minutesA = timeA[0] * 60 + timeA[1];
@@ -347,21 +363,6 @@ export const DriverDashboard: React.FC = () => {
     });
   };
 
-  // Safe string conversion helper
-  const safeString = (value: any): string => {
-    if (value === null || value === undefined) return '';
-    return String(value);
-  };
-
-  // Safe get owner name helper
-  const getSafeOwnerName = (delivery: Delivery): string => {
-    const lastUpdatedByName = safeString(delivery.lastUpdatedByName);
-    const startedBy = safeString(delivery.startedBy);
-    const startedByUsername = startedBy ? startedBy.split('@')[0] : '';
-    
-    return lastUpdatedByName || startedByUsername || 'UNKNOWN';
-  };
-
   const renderStatusButton = (delivery: Delivery) => {
     // For Master Driver, show read-only status
     if (isMasterDriver) {
@@ -531,7 +532,8 @@ export const DriverDashboard: React.FC = () => {
       if (isOwner) {
         showPhotoUploadModal(delivery.id, delivery.clientName);
       } else {
-        alert(`This delivery was started by ${delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0] || 'another driver'} and can only be completed by them.`);
+        const ownerName = getSafeOwnerName(delivery);
+        alert(`This delivery was started by ${ownerName} and can only be completed by them.`);
       }
       return;
     }
@@ -541,7 +543,7 @@ export const DriverDashboard: React.FC = () => {
     // 2. Delivery is started by this driver - only they can progress
     if (notStarted || isOwner) {
       if (nextStatus !== currentStatus) {
-        await handleStatusUpdate(delivery, nextStatus); // ou passe a lista atualizada, ver nota abaixo
+        await handleStatusUpdate(delivery, nextStatus);
       }
     }
   };
@@ -586,6 +588,7 @@ export const DriverDashboard: React.FC = () => {
   };
 
   const formatTime = (timeStr: string) => {
+    if (!timeStr) return 'N/A';
     const [hours, minutes] = timeStr.split(':');
     const date = new Date();
     date.setHours(parseInt(hours), parseInt(minutes));
@@ -603,8 +606,8 @@ export const DriverDashboard: React.FC = () => {
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading today's deliveries...</p>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   return (
@@ -696,14 +699,14 @@ export const DriverDashboard: React.FC = () => {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="text-lg font-bold mb-1">
-                          {delivery.clientName}
+                          {safeString(delivery.clientName)}
                         </h3>
                         <p className="text-sm opacity-90 mb-2">
-                          Invoice #{delivery.invoiceNumber}
+                          Invoice #{safeString(delivery.invoiceNumber)}
                         </p>
                         <div className="flex items-center text-sm opacity-80">
                           <Truck className="w-3 h-3 mr-1" />
-                          {delivery.truckType}
+                          {safeString(delivery.truckType)}
                         </div>
                       </div>
                       <div className="text-right">
@@ -751,13 +754,13 @@ export const DriverDashboard: React.FC = () => {
                           <div>
                             <span className="font-medium text-gray-700">Address:</span>
                             <a
-                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(delivery.deliveryAddress)}`}
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(safeString(delivery.deliveryAddress))}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1 break-words"
                               title="Open in Google Maps"
                             >
-                              {delivery.deliveryAddress}
+                              {safeString(delivery.deliveryAddress)}
                             </a>
                           </div>
                         </div>
@@ -766,7 +769,7 @@ export const DriverDashboard: React.FC = () => {
                           <Truck className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Truck:</span>
-                            <p className="text-gray-900">{delivery.truckType}</p>
+                            <p className="text-gray-900">{safeString(delivery.truckType)}</p>
                           </div>
                         </div>
 
@@ -774,7 +777,7 @@ export const DriverDashboard: React.FC = () => {
                           <Package className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Material:</span>
-                            <p className="text-gray-900">{delivery.materialDescription}</p>
+                            <p className="text-gray-900">{safeString(delivery.materialDescription)}</p>
                           </div>
                         </div>
 
@@ -783,11 +786,11 @@ export const DriverDashboard: React.FC = () => {
                           <div>
                             <span className="font-medium text-gray-700">Phone:</span>
                             <a
-                              href={`tel:${delivery.clientPhone.replace(/\D/g, '')}`}
+                              href={`tel:${safeString(delivery.clientPhone).replace(/\D/g, '')}`}
                               className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1 font-medium"
                               title="Call client"
                             >
-                              {delivery.clientPhone}
+                              {safeString(delivery.clientPhone)}
                             </a>
                           </div>
                         </div>
@@ -797,7 +800,7 @@ export const DriverDashboard: React.FC = () => {
                             <div className="w-4 h-4 text-gray-400 mr-2 mt-0.5">📝</div>
                             <div>
                               <span className="font-medium text-gray-700">Notes:</span>
-                              <p className="text-gray-900 italic">{delivery.additionalNotes}</p>
+                              <p className="text-gray-900 italic">{safeString(delivery.additionalNotes)}</p>
                             </div>
                           </div>
                         )}
