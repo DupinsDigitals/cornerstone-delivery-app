@@ -257,10 +257,10 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
 
   // Calculate positions for all deliveries in a day
   const calculateDeliveryPositions = (dayDeliveries: Delivery[]): DeliveryPosition[] => {
-    // Group deliveries by truck type first, then sort by time within each group
+    // Group deliveries by truck type (same truck = same column)
     const truckGroups: { [key: string]: Delivery[] } = {};
     
-    // Group by truck type
+    // Group by truck type and store
     dayDeliveries.forEach(delivery => {
       const truckKey = `${delivery.originStore}-${delivery.truckType}`;
       if (!truckGroups[truckKey]) {
@@ -269,19 +269,18 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
       truckGroups[truckKey].push(delivery);
     });
 
-    // Sort deliveries within each truck group by scheduled time
+    // Sort deliveries within each truck group by scheduled time (to maintain chronological order)
     Object.keys(truckGroups).forEach(truckKey => {
       truckGroups[truckKey].sort((a, b) => {
-        const aStartTime = a.startTime || a.scheduledTime;
-        const bStartTime = b.startTime || b.scheduledTime;
-        return timeToMinutes(aStartTime) - timeToMinutes(bStartTime);
+        // Always use scheduledTime to respect the sales rep's timeline
+        return timeToMinutes(a.scheduledTime) - timeToMinutes(b.scheduledTime);
       });
     });
 
-    // Convert truck groups to array and sort by earliest delivery time in each group
+    // Sort truck groups by the earliest scheduled time in each group
     const sortedTruckGroups = Object.entries(truckGroups).sort(([, aDeliveries], [, bDeliveries]) => {
-      const aEarliestTime = timeToMinutes(aDeliveries[0].startTime || aDeliveries[0].scheduledTime);
-      const bEarliestTime = timeToMinutes(bDeliveries[0].startTime || bDeliveries[0].scheduledTime);
+      const aEarliestTime = timeToMinutes(aDeliveries[0].scheduledTime);
+      const bEarliestTime = timeToMinutes(bDeliveries[0].scheduledTime);
       return aEarliestTime - bEarliestTime;
     });
 
@@ -294,7 +293,8 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
       const leftPosition = groupIndex * columnWidth;
       
       deliveries.forEach((delivery) => {
-        const startTime = delivery.startTime || delivery.scheduledTime;
+        // ALWAYS use scheduledTime for positioning - this respects the sales rep's timeline
+        const startTime = delivery.scheduledTime;
         const endTime = delivery.endTime;
         
         let startDate, endDate, durationInMinutes;
@@ -313,7 +313,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
         const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
         const finalDuration = Math.max(30, durationInMinutes); // Minimum 30 minutes
         
-        // Calculate position from 6:00 AM (360 minutes)
+        // Calculate vertical position from 6:00 AM (360 minutes) - based on SCHEDULED time
         const top = ((startMinutes - 360) / 30) * slotHeight;
         const height = (finalDuration / 30) * slotHeight;
         
@@ -323,7 +323,8 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
         
         // Debugging help
         console.log(`📅 Delivery: ${delivery.clientName}`, {
-          startTime: startTime,
+          scheduledTime: delivery.scheduledTime,
+          actualStartTime: delivery.startTime,
           endTime: endTime,
           durationMinutes: durationInMinutes,
           slotCount: Math.ceil(durationInMinutes / 30),
