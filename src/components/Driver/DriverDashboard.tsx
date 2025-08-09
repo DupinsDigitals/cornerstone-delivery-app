@@ -515,7 +515,7 @@ export const DriverDashboard: React.FC = () => {
             className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
             title={`This delivery is being handled by ${ownerInfo}`}
           >
-            🚫 DRIVER: {(ownerInfo?.split('@')[0] || '').toUpperCase() || 'OTHER'}
+            🚫 DRIVER: {String(ownerInfo?.split('@')[0] || '').toUpperCase() || 'OTHER'}
           </button>
         </div>
       );
@@ -539,7 +539,7 @@ export const DriverDashboard: React.FC = () => {
           >
             🚫 {statusStyle.label}
             <span className="block text-xs opacity-75">
-              Locked by {(ownerName || '').replace(/[^A-Z0-9\s]/g, '')}
+              Locked by {String(ownerName || '').replace(/[^A-Z0-9\s]/g, '')}
             </span>
           </button>
         </div>
