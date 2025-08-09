@@ -753,9 +753,9 @@ export const DriverDashboard: React.FC = () => {
                           <MapPin className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Address:</span>
-                            {delivery.deliveryAddress && delivery.deliveryAddress.trim() ? (
+                            {delivery.deliveryAddress ? (
                               <a
-                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(safeString(delivery.deliveryAddress))}`}
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(delivery.deliveryAddress)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1 break-words"
@@ -773,7 +773,7 @@ export const DriverDashboard: React.FC = () => {
                           <Truck className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Truck:</span>
-                            <p className="text-gray-900">{delivery.truckType || 'Not specified'}</p>
+                            <p className="text-gray-900">{delivery.truckType}</p>
                           </div>
                         </div>
 
@@ -783,7 +783,7 @@ export const DriverDashboard: React.FC = () => {
                           </div>
                           <div>
                             <span className="font-medium text-gray-700">Number of Trips:</span>
-                            <p className="text-gray-900">{delivery.numberOfTrips || 'Not specified'}</p>
+                            <p className="text-gray-900">{delivery.numberOfTrips}</p>
                           </div>
                         </div>
 
@@ -791,7 +791,7 @@ export const DriverDashboard: React.FC = () => {
                           <Package className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Material:</span>
-                            <p className="text-gray-900">{delivery.materialDescription || 'Not specified'}</p>
+                            <p className="text-gray-900">{delivery.materialDescription}</p>
                           </div>
                         </div>
 
@@ -799,9 +799,9 @@ export const DriverDashboard: React.FC = () => {
                           <Phone className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Phone:</span>
-                            {delivery.clientPhone && delivery.clientPhone.trim() ? (
+                            {delivery.clientPhone ? (
                               <a
-                                href={`tel:${safeString(delivery.clientPhone).replace(/\D/g, '')}`}
+                                href={`tel:${delivery.clientPhone.replace(/\D/g, '')}`}
                                 className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1"
                                 title="Call client"
                               >
