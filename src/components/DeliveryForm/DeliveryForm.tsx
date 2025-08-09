@@ -3,7 +3,7 @@ import { Save, X, Calendar, Clock, MapPin, Phone, User, FileText, Package, Truck
 import { Delivery } from '../../types/delivery';
 import { useAuth } from '../../contexts/AuthContext';
 import { saveDeliveryToFirestore } from '../../services/deliveryService';
-import { TRUCK_TYPES } from '../../utils/truckTypes';
+import { TRUCK_TYPES, getTruckColor, getContrastTextColor } from '../../utils/truckTypes';
 import { calculateTravelTime, validateAddress } from '../../utils/googleMaps';
 
 interface DeliveryFormProps {
