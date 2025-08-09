@@ -12,6 +12,25 @@ interface DeliveryFormProps {
   editingDelivery?: Delivery | null;
 }
 
+// Generate 30-minute time slots from 6:00 AM to 6:00 PM
+const generateTimeSlots = () => {
+  const slots = [];
+  for (let hour = 6; hour <= 18; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      if (hour === 18 && minute > 0) break; // Stop at 6:00 PM
+      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      const displayTime = new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      slots.push({ value: time, label: displayTime });
+    }
+  }
+  return slots;
+};
+
+const TIME_SLOTS = generateTimeSlots();
 export const DeliveryForm: React.FC<DeliveryFormProps> = ({
   onSubmit,
   onCancel,
@@ -633,14 +652,20 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
               <Clock className="w-4 h-4 inline mr-1" />
               Start Time *
             </label>
-            <input
-              type="time"
+            <select
               value={formData.scheduledTime}
               onChange={(e) => handleInputChange('scheduledTime', e.target.value)}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
                 errors.scheduledTime ? 'border-red-500' : 'border-gray-300'
               }`}
-            />
+            >
+              <option value="">Select start time</option>
+              {TIME_SLOTS.map((slot) => (
+                <option key={slot.value} value={slot.value}>
+                  {slot.label}
+                </option>
+              ))}
+            </select>
             {errors.scheduledTime && (
               <p className="mt-1 text-sm text-red-600">{errors.scheduledTime}</p>
             )}
@@ -652,12 +677,18 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
                 <Clock className="w-4 h-4 inline mr-1" />
                 End Time
               </label>
-              <input
-                type="time"
+              <select
                 value={formData.endTime}
                 onChange={(e) => handleInputChange('endTime', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+              >
+                <option value="">Select end time</option>
+                {TIME_SLOTS.map((slot) => (
+                  <option key={slot.value} value={slot.value}>
+                    {slot.label}
+                  </option>
+                ))}
+              </select>
               <p className="mt-1 text-xs text-gray-500">
                 {formData.entryType === 'internal' ? 'Event end time' : 'Auto-calculated based on estimated time'}
               </p>
