@@ -153,10 +153,11 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+      style={{ zIndex: 9999 }}
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto" style={{ zIndex: 10000 }}>
         {/* Header */}
         <div className="p-6 border-b bg-green-50">
           <div className="flex items-start justify-between">
