@@ -754,14 +754,18 @@ export const DriverDashboard: React.FC = () => {
                           <div>
                             <span className="font-medium text-gray-700">Address:</span>
                             {delivery.deliveryAddress && delivery.deliveryAddress.trim() ? (
-                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(safeString(delivery.deliveryAddress))}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1 break-words"
-                              title="Open in Google Maps"
-                            >
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(safeString(delivery.deliveryAddress))}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1 break-words"
+                                title="Open in Google Maps"
+                              >
+                                {delivery.deliveryAddress}
+                              </a>
+                            ) : (
                               <p className="text-gray-500 italic mt-1">Address not available</p>
-                            </a>
+                            )}
                           </div>
                         </div>
 
@@ -793,15 +797,19 @@ export const DriverDashboard: React.FC = () => {
 
                         <div className="flex items-start">
                           <Phone className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
-                                href={`tel:${delivery.clientPhone.replace(/\D/g, '')}`}
+                          <div>
                             <span className="font-medium text-gray-700">Phone:</span>
                             {delivery.clientPhone && delivery.clientPhone.trim() ? (
-                              href={`tel:${safeString(delivery.clientPhone).replace(/\D/g, '')}`}
+                              <a
+                                href={`tel:${safeString(delivery.clientPhone).replace(/\D/g, '')}`}
+                                className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors block mt-1"
+                                title="Call client"
+                              >
                                 {delivery.clientPhone}
-                              title="Call client"
-                            >
+                              </a>
+                            ) : (
                               <p className="text-gray-500 italic mt-1">Phone not available</p>
-                            </a>
+                            )}
                           </div>
                         </div>
 
