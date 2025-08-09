@@ -138,13 +138,30 @@ export const DriverDashboard: React.FC = () => {
           delivery.type !== 'equipmentMaintenance'
         );
         
-        // Sort deliveries by scheduled time (earliest first)
+        // Sort deliveries by when they were started/claimed by drivers
         const sortedDeliveries = filteredDeliveries.sort((a, b) => {
-          // Parse time strings (HH:MM format) for comparison
+          // First priority: deliveries that have been started (have startedBy or claimedAt)
+          const aStarted = a.startedBy || a.claimedAt;
+          const bStarted = b.startedBy || b.claimedAt;
+          
+          // If both are started, sort by claimedAt time (earliest first)
+          if (aStarted && bStarted) {
+            const aClaimedTime = a.claimedAt ? new Date(a.claimedAt).getTime() : 0;
+            const bClaimedTime = b.claimedAt ? new Date(b.claimedAt).getTime() : 0;
+            
+            if (aClaimedTime && bClaimedTime) {
+              return aClaimedTime - bClaimedTime; // Earlier claimed deliveries first
+            }
+          }
+          
+          // If only one is started, put started ones first
+          if (aStarted && !bStarted) return -1;
+          if (!aStarted && bStarted) return 1;
+          
+          // If neither is started, sort by scheduled time
           const timeA = (a.scheduledTime || '00:00').split(':').map(Number);
           const timeB = (b.scheduledTime || '00:00').split(':').map(Number);
           
-          // Convert to minutes for easy comparison
           const minutesA = timeA[0] * 60 + timeA[1];
           const minutesB = timeB[0] * 60 + timeB[1];
           
