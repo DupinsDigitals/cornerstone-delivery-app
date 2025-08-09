@@ -1,280 +1,266 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const axios = require('axios');
+import { 
+  collection, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  getDocs, 
+  getDoc,
+  query, 
+  where, 
+  orderBy, 
+  serverTimestamp,
+  Timestamp 
+} from 'firebase/firestore';
+import { 
+  ref, 
+  uploadBytes, 
+  getDownloadURL 
+} from 'firebase/storage';
+import { httpsCallable } from 'firebase/functions';
+import { db, storage, functions } from '../config/firebase';
+import { Delivery } from '../types/delivery';
 
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
+const DELIVERIES_COLLECTION = 'deliveries';
 
-const db = admin.firestore();
-
-// Cloud Function that triggers when a new delivery document is created
-// This function is create-only and idempotent (won't send duplicate webhooks)
-exports.onDeliveryCreated_sendWebhook = functions.firestore
-  .document('deliveries/{id}')
-  .onCreate(async (snap, context) => {
-    const deliveryId = context.params.id;
-    const deliveryData = snap.data();
-    
-    // Generate unique execution ID for this function run
-    const executionId = `${deliveryId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    functions.logger.info(`🚀 Function started - Execution ID: ${executionId}, Delivery: ${deliveryId}`);
-    
-    // CRITICAL: Early check - If webhook already sent, skip immediately
-    if (deliveryData.scheduledWebhookSent === true) {
-      functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId}, skipping - Execution: ${executionId}`);
-      return null;
-    }
-    
-    try {
-      // Pre-check: Only process PENDING deliveries
-      if (deliveryData.status && deliveryData.status !== 'PENDING') {
-        functions.logger.info(`❌ Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook - Execution: ${executionId}`);
-        return null;
-      }
-      
-      // CRITICAL: Use transaction with unique execution tracking
-      let webhookShouldBeSent = false;
-      let transactionSuccess = false;
-      
-      await db.runTransaction(async (transaction) => {
-        // Re-read the document within the transaction to get latest state
-        const docRef = snap.ref;
-        const freshDoc = await transaction.get(docRef);
-        
-        if (!freshDoc.exists) {
-          functions.logger.warn(`❌ Document ${deliveryId} no longer exists, skipping webhook - Execution: ${executionId}`);
-          return;
-        }
-        
-        const freshData = freshDoc.data();
-        
-        // CRITICAL: Double-check if webhook was already sent (race condition protection)
-        if (freshData.scheduledWebhookSent === true) {
-          functions.logger.info(`❌ Webhook already sent for delivery ${deliveryId} (detected in transaction), skipping - Execution: ${executionId}`);
-          return;
-        }
-        
-        // ATOMIC: Set multiple flags to prevent any possibility of duplication
-        transaction.update(docRef, {
-          scheduledWebhookSent: true,
-          scheduledWebhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
-          webhookExecutionId: executionId,
-          webhookProcessedBy: 'onDeliveryCreated_sendWebhook'
-        });
-        
-        webhookShouldBeSent = true;
-        transactionSuccess = true;
-        functions.logger.info(`✅ Transaction completed: marked webhook as sent for delivery ${deliveryId} - Execution: ${executionId}`);
-      });
-      
-      // Triple verification before sending webhook
-      if (!webhookShouldBeSent || !transactionSuccess) {
-        functions.logger.info(`❌ Webhook flag was not set for delivery ${deliveryId}, skipping webhook send - Execution: ${executionId}`);
-        return null;
-      }
-      
-      // FINAL VERIFICATION: Re-read document to ensure flag is set
-      const verifyDoc = await snap.ref.get();
-      const verifyData = verifyDoc.exists() ? verifyDoc.data() : {};
-      
-      if (!verifyDoc.exists || 
-          verifyData.scheduledWebhookSent !== true || 
-          verifyData.webhookExecutionId !== executionId) {
-        functions.logger.warn(`❌ Webhook flag verification failed for delivery ${deliveryId}, skipping webhook send - Execution: ${executionId}`);
-        functions.logger.warn(`Verification details:`, {
-          docExists: verifyDoc.exists(),
-          webhookSent: verifyData.scheduledWebhookSent,
-          executionId: executionId,
-          storedExecutionId: verifyData.webhookExecutionId
-        });
-        return null;
-      }
-      
-      functions.logger.info(`🎯 All verifications passed, proceeding with webhook send - Execution: ${executionId}`);
-      
-      // Extract fields with sensible fallbacks
-      const customerName = deliveryData.customerName || deliveryData.clientName || '';
-      const customerPhone = deliveryData.customerPhone || deliveryData.destinationPhone || deliveryData.phone || '';
-      const address = deliveryData.address || deliveryData.deliveryAddress || '';
-      const scheduledDateTime = deliveryData.scheduledDateTime || deliveryData.scheduledAt || `${deliveryData.scheduledDate || ''} ${deliveryData.scheduledTime || ''}`.trim();
-      const invoiceNumber = deliveryData.invoiceNumber || deliveryData.invoice || '';
-      const store = deliveryData.store || deliveryData.location || deliveryData.originStore || '';
-      
-      // Validate required fields
-      if (!customerPhone || !address || !scheduledDateTime) {
-        functions.logger.warn(`❌ Missing required fields for delivery ${deliveryId} - Execution: ${executionId}:`, {
-          customerPhone: !!customerPhone,
-          address: !!address,
-          scheduledDateTime: !!scheduledDateTime
-        });
-        return null;
-      }
-      
-      // Prepare exact webhook payload
-      const webhookPayload = {
-        event: 'delivery_scheduled',
-        deliveryId,
-        customerName,
-        customerPhone,
-        address,
-        scheduledDateTime,
-        invoiceNumber,
-        store,
-        executionId // Add execution ID for tracking
-      };
-      
-      functions.logger.info(`📤 Sending webhook for delivery ${deliveryId} - Execution: ${executionId}`, webhookPayload);
-      
-      // Send webhook using axios with 8s timeout
-      const webhookUrl = 'https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/a7c21c87-6ac3-45db-9d67-7eab83d43ba1';
-      
-      const response = await axios.post(webhookUrl, webhookPayload, {
-        timeout: 8000,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.status >= 200 && response.status < 300) {
-        functions.logger.info(`✅ Webhook sent successfully for delivery ${deliveryId} - Execution: ${executionId}`);
-        
-        // Mark webhook as successfully sent
-        await snap.ref.update({
-          webhookSentSuccessfully: true,
-          webhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
-          webhookResponse: response.status
-        });
-      } else {
-        functions.logger.error(`❌ Webhook failed for delivery ${deliveryId}. Status: ${response.status} - Execution: ${executionId}`, response.data);
-      }
-      
-    } catch (error) {
-      if (error.code === 'ECONNABORTED') {
-        functions.logger.error(`⏰ Webhook timeout for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
-      } else if (error.response) {
-        functions.logger.error(`❌ Webhook failed for delivery ${deliveryId}. Status: ${error.response.status} - Execution: ${executionId}`, error.response.data);
-      } else {
-        functions.logger.error(`💥 Error sending webhook for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
-      }
-      // Do not retry automatically - just log the error
-    }
-    
-    functions.logger.info(`🏁 Function completed - Execution: ${executionId}`);
-    return null;
-  });
-
-// Cloud Function that triggers when delivery status changes to "GETTING LOAD"
-exports.onDeliveryStatusChanged_sendWebhook = functions.firestore
-  .document('deliveries/{id}')
-  .onUpdate(async (change, context) => {
-    const deliveryId = context.params.id;
-    const beforeData = change.before.data();
-    const afterData = change.after.data();
-    
-    // Generate unique execution ID for this function run
-    const executionId = `${deliveryId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    functions.logger.info(`🔄 Status change function started - Execution ID: ${executionId}, Delivery: ${deliveryId}`);
-    
-    // Add delay to prevent race conditions
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    try {
-      // Check if status changed to "GETTING LOAD" (case-insensitive)
-      const beforeStatus = (beforeData.status || '').toLowerCase().trim();
-      const afterStatus = (afterData.status || '').toLowerCase().trim();
-      
-      if (beforeStatus !== 'getting load' && afterStatus === 'getting load') {
-        functions.logger.info(`🚀 Status changed to GETTING LOAD for delivery ${deliveryId} - Execution: ${executionId}`);
-        
-        // Check if webhook was already sent for this status change
-        if (afterData.gettingLoadWebhookSent === true) {
-          functions.logger.info(`❌ GETTING LOAD webhook already sent for delivery ${deliveryId}, skipping - Execution: ${executionId}`);
-          return null;
-        }
-        
-        // Mark webhook as sent to prevent duplicates
-        await change.after.ref.update({
-          gettingLoadWebhookSent: true,
-          gettingLoadWebhookSentAt: admin.firestore.FieldValue.serverTimestamp(),
-          gettingLoadWebhookExecutionId: executionId
-        });
-        
-        const webhookPayload = {
-          firstName: afterData.clientName || afterData.customerName || '',
-          phone: afterData.phone || afterData.customerPhone || '',
-          address: afterData.address || afterData.deliveryAddress || '',
-          invoice: afterData.invoiceNumber || '',
-          status: afterData.status || ''
-        };
-        
-        functions.logger.info(`📤 Sending GETTING LOAD webhook for delivery ${deliveryId} - Execution: ${executionId}`, webhookPayload);
-        
-        const response = await axios.post('https://services.leadconnectorhq.com/hooks/mBFUGtg8hdlP23JhMe7J/webhook-trigger/e74a90fe-2813-4631-93e3-f3d0aaf27968', webhookPayload, {
-          timeout: 8000,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.status >= 200 && response.status < 300) {
-          functions.logger.info(`✅ GETTING LOAD webhook sent successfully for delivery ${deliveryId} - Execution: ${executionId}`);
-          
-          // Mark as successfully sent
-          await change.after.ref.update({
-            gettingLoadWebhookSentSuccessfully: true,
-            gettingLoadWebhookResponse: response.status
-          });
-        } else {
-          functions.logger.error(`❌ GETTING LOAD webhook failed for delivery ${deliveryId}. Status: ${response.status} - Execution: ${executionId}`, response.data);
-        }
-      } else {
-        functions.logger.info(`ℹ️ Status change detected but not GETTING LOAD (${beforeStatus} -> ${afterStatus}) for delivery ${deliveryId} - Execution: ${executionId}`);
-      }
-      
-    } catch (error) {
-      // Clean up flag on error
-      try {
-        await change.after.ref.update({
-          gettingLoadWebhookSent: false,
-          gettingLoadWebhookError: error.message,
-          gettingLoadWebhookErrorAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-      } catch (cleanupError) {
-        functions.logger.error(`❌ Error cleaning up webhook flag for delivery ${deliveryId} - Execution: ${executionId}:`, cleanupError.message);
-      }
-      
-      if (error.code === 'ECONNABORTED') {
-        functions.logger.error(`⏰ GETTING LOAD webhook timeout for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
-      } else if (error.response) {
-        functions.logger.error(`❌ GETTING LOAD webhook failed for delivery ${deliveryId}. Status: ${error.response.status} - Execution: ${executionId}`, error.response.data);
-      } else {
-        functions.logger.error(`💥 Error sending GETTING LOAD webhook for delivery ${deliveryId} - Execution: ${executionId}:`, error.message);
-      }
-    }
-    
-    functions.logger.info(`🏁 Status change function completed - Execution: ${executionId}`);
-    return null;
-  });
-
-// Delete delivery from Firestore
-exports.deleteDeliveryFromFirestore = functions.https.onCall(async (data, context) => {
+// Get all deliveries from Firestore
+export const getDeliveriesFromFirestore = async (): Promise<{ success: boolean; deliveries?: Delivery[]; error?: string }> => {
   try {
-    const { deliveryId } = data;
+    const deliveriesRef = collection(db, DELIVERIES_COLLECTION);
+    const q = query(deliveriesRef, orderBy('scheduledDate', 'asc'), orderBy('scheduledTime', 'asc'));
+    const querySnapshot = await getDocs(q);
     
-    if (!deliveryId) {
-      throw new functions.https.HttpsError('invalid-argument', 'Delivery ID is required');
-    }
+    const deliveries: Delivery[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      deliveries.push({
+        id: doc.id,
+        ...data,
+        // Convert Firestore timestamps to ISO strings if needed
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+        updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt,
+      } as Delivery);
+    });
     
-    const deliveryRef = db.collection('deliveries').doc(deliveryId);
-    await deliveryRef.delete();
+    return { success: true, deliveries };
+  } catch (error) {
+    console.error('Error fetching deliveries from Firestore:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
+
+// Add new delivery to Firestore
+export const addDeliveryToFirestore = async (deliveryData: Partial<Delivery>): Promise<{ success: boolean; id?: string; error?: string }> => {
+  try {
+    const deliveriesRef = collection(db, DELIVERIES_COLLECTION);
+    const docRef = await addDoc(deliveriesRef, {
+      ...deliveryData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error('Error adding delivery to Firestore:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
+
+// Update existing delivery in Firestore
+export const updateDeliveryInFirestore = async (deliveryId: string, updateData: Partial<Delivery>): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const deliveryRef = doc(db, DELIVERIES_COLLECTION, deliveryId);
+    await updateDoc(deliveryRef, {
+      ...updateData,
+      updatedAt: serverTimestamp(),
+    });
     
     return { success: true };
   } catch (error) {
-    functions.logger.error('Error deleting delivery from Firestore:', error);
-    throw new functions.https.HttpsError('internal', 
-      error instanceof Error ? error.message : 'Unknown error occurred'
-    );
+    console.error('Error updating delivery in Firestore:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
   }
-});
+};
+
+// Save delivery (create or update)
+export const saveDeliveryToFirestore = async (deliveryData: Partial<Delivery>): Promise<{ success: boolean; id?: string; error?: string }> => {
+  if (deliveryData.id) {
+    // Update existing delivery
+    const result = await updateDeliveryInFirestore(deliveryData.id, deliveryData);
+    return { ...result, id: deliveryData.id };
+  } else {
+    // Create new delivery
+    return await addDeliveryToFirestore(deliveryData);
+  }
+};
+
+// Delete delivery from Firestore
+export const deleteDeliveryFromFirestore = async (deliveryId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const deliveryRef = doc(db, DELIVERIES_COLLECTION, deliveryId);
+    await deleteDoc(deliveryRef);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting delivery from Firestore:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
+
+// Get today's deliveries for a specific store
+export const getTodaysDeliveriesForStore = async (store: string, date: string): Promise<{ success: boolean; deliveries?: Delivery[]; error?: string }> => {
+  try {
+    const deliveriesRef = collection(db, DELIVERIES_COLLECTION);
+    const q = query(
+      deliveriesRef, 
+      where('originStore', '==', store),
+      where('scheduledDate', '==', date),
+      orderBy('scheduledTime', 'asc')
+    );
+    const querySnapshot = await getDocs(q);
+    
+    const deliveries: Delivery[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      deliveries.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+        updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt,
+      } as Delivery);
+    });
+    
+    return { success: true, deliveries };
+  } catch (error) {
+    console.error('Error fetching today\'s deliveries:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
+
+// Update delivery status
+export const updateDeliveryStatus = async (deliveryId: string, status: string, additionalData?: any): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const deliveryRef = doc(db, DELIVERIES_COLLECTION, deliveryId);
+    
+    // Get current delivery data to check ownership
+    const deliveryDoc = await getDoc(deliveryRef);
+    if (!deliveryDoc.exists()) {
+      return { success: false, error: 'Delivery not found' };
+    }
+    
+    const currentData = deliveryDoc.data();
+    
+    // Check if delivery is already claimed by another driver
+    if (currentData.startedBy && additionalData?.startedBy && currentData.startedBy !== additionalData.startedBy) {
+      return { success: false, error: 'This delivery has been claimed by another driver' };
+    }
+    
+    const updateData = {
+      status,
+      updatedAt: serverTimestamp(),
+      ...additionalData
+    };
+    
+    // Add edit history entry
+    const editEntry = {
+      action: 'status_changed',
+      editedAt: new Date().toISOString(),
+      editedBy: additionalData?.lastUpdatedBy || 'Unknown',
+      editedByName: additionalData?.lastUpdatedByName || 'Unknown User',
+      changes: `Status changed to ${status}`
+    };
+    
+    if (currentData.editHistory) {
+      updateData.editHistory = [...currentData.editHistory, editEntry];
+    } else {
+      updateData.editHistory = [editEntry];
+    }
+    
+    await updateDoc(deliveryRef, updateData);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating delivery status:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
+
+// Upload delivery photos to Firebase Storage
+export const uploadDeliveryPhotos = async (deliveryId: string, files: File[]): Promise<{ success: boolean; photoUrls?: string[]; error?: string }> => {
+  try {
+    const photoUrls: string[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const timestamp = Date.now();
+      const fileName = `delivery_${deliveryId}_${timestamp}_${i + 1}.jpg`;
+      const storageRef = ref(storage, `delivery-photos/${fileName}`);
+      
+      // Upload file
+      const snapshot = await uploadBytes(storageRef, file);
+      
+      // Get download URL
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      photoUrls.push(downloadURL);
+    }
+    
+    return { success: true, photoUrls };
+  } catch (error) {
+    console.error('Error uploading delivery photos:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
+
+// Handle schedule delivery (wrapper for addDeliveryToFirestore)
+export const handleScheduleDelivery = async (deliveryData: Partial<Delivery>): Promise<{ success: boolean; id?: string; error?: string }> => {
+  return await addDeliveryToFirestore(deliveryData);
+};
+
+// Search deliveries by various criteria
+export const searchDeliveries = async (searchTerm: string): Promise<{ success: boolean; deliveries?: Delivery[]; error?: string }> => {
+  try {
+    // Get all deliveries and filter client-side (Firestore has limited text search)
+    const result = await getDeliveriesFromFirestore();
+    
+    if (!result.success || !result.deliveries) {
+      return result;
+    }
+    
+    const searchTermLower = searchTerm.toLowerCase();
+    const filteredDeliveries = result.deliveries.filter(delivery => 
+      delivery.clientName?.toLowerCase().includes(searchTermLower) ||
+      delivery.invoiceNumber?.toLowerCase().includes(searchTermLower) ||
+      delivery.deliveryAddress?.toLowerCase().includes(searchTermLower) ||
+      delivery.clientPhone?.includes(searchTerm)
+    );
+    
+    return { success: true, deliveries: filteredDeliveries };
+  } catch (error) {
+    console.error('Error searching deliveries:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
