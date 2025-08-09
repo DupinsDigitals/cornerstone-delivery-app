@@ -353,6 +353,15 @@ export const DriverDashboard: React.FC = () => {
     return String(value);
   };
 
+  // Safe get owner name helper
+  const getSafeOwnerName = (delivery: Delivery): string => {
+    const lastUpdatedByName = safeString(delivery.lastUpdatedByName);
+    const startedBy = safeString(delivery.startedBy);
+    const startedByUsername = startedBy ? startedBy.split('@')[0] : '';
+    
+    return lastUpdatedByName || startedByUsername || 'UNKNOWN';
+  };
+
   const renderStatusButton = (delivery: Delivery) => {
     // For Master Driver, show read-only status
     if (isMasterDriver) {
@@ -421,6 +430,7 @@ export const DriverDashboard: React.FC = () => {
     const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
     if (isOwnedByAnotherDriver) {
       const ownerInfo = safeString(delivery.startedBy);
+      const ownerUsername = ownerInfo ? ownerInfo.split('@')[0] : '';
       return (
         <div className="flex items-center space-x-2">
           <button
@@ -428,16 +438,14 @@ export const DriverDashboard: React.FC = () => {
             className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
             title={`This delivery is being handled by ${ownerInfo}`}
           >
-            🚫 DRIVER: {safeString(ownerInfo.split('@')[0]).toUpperCase() || 'OTHER'}
+            🚫 DRIVER: {safeString(ownerUsername).toUpperCase() || 'OTHER'}
           </button>
         </div>
       );
     }
     
     if (!canUpdate) {
-      const ownerName = safeString(delivery.lastUpdatedByName) || 
-                       safeString(delivery.startedBy?.split('@')[0]).toUpperCase() || 
-                       'ANOTHER DRIVER';
+      const ownerName = getSafeOwnerName(delivery);
       const statusStyle = getStatusButtonStyle(delivery.status);
 
       return (
@@ -454,7 +462,7 @@ export const DriverDashboard: React.FC = () => {
           >
             🚫 {statusStyle.label}
             <span className="block text-xs opacity-75">
-              Locked by {safeString(ownerName).replace(/[^A-Z0-9\s]/g, '') || 'UNKNOWN'}
+              Locked by {safeString(ownerName).toUpperCase().replace(/[^A-Z0-9\s]/g, '') || 'UNKNOWN'}
             </span>
           </button>
         </div>
