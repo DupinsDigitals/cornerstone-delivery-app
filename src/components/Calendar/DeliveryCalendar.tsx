@@ -41,7 +41,22 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Update current time every minute
+  useEffect(() => {
+    const updateCurrentTime = () => {
+      setCurrentTime(new Date());
+    };
+
+    // Update immediately
+    updateCurrentTime();
+
+    // Update every minute
+    const interval = setInterval(updateCurrentTime, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => {
     const loadDeliveries = async () => {
       try {
@@ -431,6 +446,41 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
 
   const activeTrucks = getActiveTrucksForWeek();
 
+  // Calculate current time indicator position
+  const getCurrentTimePosition = () => {
+    const now = currentTime;
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    
+    // Only show during business hours (6 AM - 6 PM)
+    if (hours < 6 || hours >= 18) {
+      return null;
+    }
+    
+    // Calculate position in pixels from 6:00 AM
+    const totalMinutesFromStart = (hours - 6) * 60 + minutes;
+    const pixelPosition = totalMinutesFromStart; // 1px per minute
+    
+    return {
+      top: pixelPosition,
+      time: now.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      })
+    };
+  };
+
+  const currentTimePosition = getCurrentTimePosition();
+
+  // Check if today is in the current week view
+  const isTodayInCurrentWeek = () => {
+    const today = new Date();
+    const todayStr = today.toDateString();
+    return weekDates.some(date => date.toDateString() === todayStr);
+  };
+
+  const showCurrentTimeLine = isTodayInCurrentWeek() && currentTimePosition;
   const handleDeleteDelivery = async (deliveryId: string) => {
     if (window.confirm('Are you sure you want to delete this delivery?')) {
       await deleteDelivery(deliveryId);
@@ -788,7 +838,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
         {/* Calendar Body with Fixed Height Grid */}
         <div className="flex w-full">
           {/* Time Labels Column */}
-          <div className="w-16 flex-shrink-0 bg-gray-50" style={{ borderRight: '2px solid #B0B0B0' }}>
+          <div className="w-16 flex-shrink-0 bg-gray-50 relative" style={{ borderRight: '2px solid #B0B0B0' }}>
             {hourlyTimeSlots.map((timeSlot, timeIndex) => (
               <div 
                 key={timeIndex} 
@@ -800,10 +850,46 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                 <span className="font-medium text-xs">{formatTime(timeSlot)}</span>
               </div>
             ))}
+            
+            {/* Current Time Arrow */}
+            {showCurrentTimeLine && (
+              <div
+                className="absolute right-0 flex items-center z-50"
+                style={{
+                  top: `${currentTimePosition.top}px`,
+                  transform: 'translateY(-50%)'
+                }}
+              >
+                {/* Time Label */}
+                <div className="bg-red-600 text-white text-xs px-2 py-1 rounded-l-md font-bold shadow-lg">
+                  {currentTimePosition.time}
+                </div>
+                {/* Arrow */}
+                <div 
+                  className="w-0 h-0 border-l-8 border-r-0 border-t-4 border-b-4"
+                  style={{
+                    borderLeftColor: '#dc2626',
+                    borderTopColor: 'transparent',
+                    borderBottomColor: 'transparent'
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Day Columns */}
-          <div className="flex flex-1 min-w-0">
+          <div className="flex flex-1 min-w-0 relative">
+            {/* Current Time Line */}
+            {showCurrentTimeLine && (
+              <div
+                className="absolute left-0 right-0 border-t-2 border-red-600 z-40 pointer-events-none"
+                style={{
+                  top: `${currentTimePosition.top}px`,
+                  boxShadow: '0 1px 3px rgba(220, 38, 38, 0.3)'
+                }}
+              />
+            )}
+            
             {weekDates.map((date, dayIndex) => {
               const dayDeliveries = getDeliveriesForDay(date);
               const deliveryPositions = calculateDeliveryPositions(dayDeliveries);
