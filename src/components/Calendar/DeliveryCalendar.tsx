@@ -262,120 +262,92 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
       return timeToMinutes(a.scheduledTime) - timeToMinutes(b.scheduledTime);
     });
 
-    // Helper function to check if two deliveries overlap in time
-    const doDeliveriesOverlap = (delivery1: Delivery, delivery2: Delivery): boolean => {
-      const start1 = timeToMinutes(delivery1.scheduledTime);
-      const start2 = timeToMinutes(delivery2.scheduledTime);
-      
-      // Calculate end times
-      let duration1, duration2;
-      
-      // Calculate duration for delivery1
-      if (delivery1.startTime && delivery1.endTime) {
-        const startDate1 = new Date(`${delivery1.scheduledDate}T${delivery1.startTime}`);
-        const endDate1 = new Date(`${delivery1.scheduledDate}T${delivery1.endTime}`);
-        duration1 = (endDate1.getTime() - startDate1.getTime()) / 60000;
-      } else {
-        duration1 = delivery1.estimatedTravelTime || delivery1.estimatedTimeMinutes || 60;
+    // Helper function to get delivery duration in minutes
+    const getDeliveryDuration = (delivery: Delivery): number => {
+      if (delivery.startTime && delivery.endTime) {
+        const startDate = new Date(`${delivery.scheduledDate}T${delivery.startTime}`);
+        const endDate = new Date(`${delivery.scheduledDate}T${delivery.endTime}`);
+        return Math.max(30, (endDate.getTime() - startDate.getTime()) / 60000);
       }
-      
-      // Calculate duration for delivery2
-      if (delivery2.startTime && delivery2.endTime) {
-        const startDate2 = new Date(`${delivery2.scheduledDate}T${delivery2.startTime}`);
-        const endDate2 = new Date(`${delivery2.scheduledDate}T${delivery2.endTime}`);
-        duration2 = (endDate2.getTime() - startDate2.getTime()) / 60000;
-      } else {
-        duration2 = delivery2.estimatedTravelTime || delivery2.estimatedTimeMinutes || 60;
-      }
-      
-      const end1 = start1 + Math.max(30, duration1); // Minimum 30 minutes
-      const end2 = start2 + Math.max(30, duration2); // Minimum 30 minutes
-      
-      // Check if they overlap (start of one is before end of other)
-      return (start1 < end2 && start2 < end1);
+      return Math.max(30, delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60);
     };
 
-    // Create columns to avoid overlaps
-    const columns: Delivery[][] = [];
-    
-    // Place each delivery in the first available column
-    sortedDeliveries.forEach(delivery => {
-      let placed = false;
+    // Helper function to get delivery end time in minutes
+    const getDeliveryEndTime = (delivery: Delivery): number => {
+      const startMinutes = timeToMinutes(delivery.scheduledTime);
+      const duration = getDeliveryDuration(delivery);
+      return startMinutes + duration;
+    };
+
+    // Helper function to check if two deliveries overlap
+    const doDeliveriesOverlap = (delivery1: Delivery, delivery2: Delivery): boolean => {
+      const start1 = timeToMinutes(delivery1.scheduledTime);
+      const end1 = getDeliveryEndTime(delivery1);
+      const start2 = timeToMinutes(delivery2.scheduledTime);
+      const end2 = getDeliveryEndTime(delivery2);
       
-      // Try to place in existing columns
-      for (let i = 0; i < columns.length; i++) {
-        const column = columns[i];
+      // Two events overlap if one starts before the other ends
+      return start1 < end2 && start2 < end1;
+    };
+
+    // Create a more robust column assignment algorithm
+    const deliveryColumns: { delivery: Delivery; column: number }[] = [];
+    
+    sortedDeliveries.forEach(delivery => {
+      let assignedColumn = 0;
+      let foundColumn = false;
+      
+      // Try to find an existing column where this delivery doesn't overlap
+      while (!foundColumn) {
+        const deliveriesInColumn = deliveryColumns.filter(dc => dc.column === assignedColumn);
         let hasOverlap = false;
         
-        // Check if this delivery overlaps with any delivery in this column
-        for (const existingDelivery of column) {
-          if (doDeliveriesOverlap(delivery, existingDelivery)) {
+        for (const existingDeliveryColumn of deliveriesInColumn) {
+          if (doDeliveriesOverlap(delivery, existingDeliveryColumn.delivery)) {
             hasOverlap = true;
             break;
           }
         }
         
-        // If no overlap, place it in this column
         if (!hasOverlap) {
-          column.push(delivery);
-          placed = true;
-          break;
+          foundColumn = true;
+        } else {
+          assignedColumn++;
         }
       }
       
-      // If not placed in any existing column, create a new one
-      if (!placed) {
-        columns.push([delivery]);
-      }
+      deliveryColumns.push({ delivery, column: assignedColumn });
     });
+
+    // Calculate the total number of columns needed
+    const maxColumn = Math.max(...deliveryColumns.map(dc => dc.column));
+    const totalColumns = maxColumn + 1;
 
     // Calculate positions for each delivery
     const positions: DeliveryPosition[] = [];
-    const totalColumns = columns.length;
-    const columnWidth = totalColumns > 0 ? 85 / totalColumns : 85; // 85% to leave margin
+    const columnWidth = totalColumns > 0 ? 90 / totalColumns : 90; // Use 90% of available width
     
-    columns.forEach((column, columnIndex) => {
-      const leftPosition = columnIndex * columnWidth + 2; // Add 2% left margin
+    deliveryColumns.forEach(({ delivery, column }) => {
+      const leftPosition = column * columnWidth + 2; // Add 2% left margin
       
-      column.forEach((delivery) => {
-        // Always use scheduledTime for vertical positioning
-        const startTime = delivery.scheduledTime;
-        const endTime = delivery.endTime;
-        
-        let startDate, endDate, durationInMinutes;
-        
-        if (startTime && endTime) {
-          // Use actual start and end times if both are available
-          startDate = new Date(`${delivery.scheduledDate}T${startTime}`);
-          endDate = new Date(`${delivery.scheduledDate}T${endTime}`);
-          durationInMinutes = (endDate.getTime() - startDate.getTime()) / 60000;
-        } else {
-          // Fallback to estimated duration
-          startDate = new Date(`${delivery.scheduledDate}T${startTime}`);
-          const estimatedMinutes = delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60;
-          endDate = new Date(startDate.getTime() + (estimatedMinutes * 60 * 1000));
-          durationInMinutes = estimatedMinutes;
-        }
-        
-        const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
-        const finalDuration = Math.max(30, durationInMinutes); // Minimum 30 minutes
-        
-        // Calculate vertical position from 6:00 AM (360 minutes)
-        const top = ((startMinutes - 360) / 30) * slotHeight;
-        const height = (finalDuration / 30) * slotHeight;
-        
-        // Calculate horizontal position and width
-        const width = columnWidth - 1; // Subtract 1% for spacing between columns
-        const left = leftPosition;
-        
-        positions.push({
-          delivery,
-          top,
-          height,
-          width,
-          left,
-          zIndex: 10 + columnIndex
-        });
+      // Calculate vertical position and height
+      const startMinutes = timeToMinutes(delivery.scheduledTime);
+      const duration = getDeliveryDuration(delivery);
+      
+      // Calculate vertical position from 6:00 AM (360 minutes)
+      const top = ((startMinutes - 360) / 30) * slotHeight;
+      const height = (duration / 30) * slotHeight;
+      
+      // Calculate horizontal position and width
+      const width = columnWidth - 2; // Subtract 2% for spacing between columns
+      
+      positions.push({
+        delivery,
+        top,
+        height,
+        width,
+        left: leftPosition,
+        zIndex: 10 + column
       });
     });
 
