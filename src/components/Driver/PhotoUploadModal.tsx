@@ -5,7 +5,7 @@ interface PhotoUploadModalProps {
   deliveryId: string;
   clientName: string;
   onClose: () => void;
-  onComplete: (photoUrls: string[]) => void;
+  onComplete: (photoUrls: string[], deliveryComment?: string) => void;
   onUpload: (deliveryId: string, files: File[]) => Promise<{ success: boolean; photoUrls?: string[]; error?: string }>;
 }
 
@@ -25,6 +25,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
   const [photos, setPhotos] = useState<PhotoPreview[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [deliveryComment, setDeliveryComment] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,7 +126,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
       if (result.success && result.photoUrls) {
         // Clean up object URLs
         photos.forEach(photo => URL.revokeObjectURL(photo.url));
-        onComplete(result.photoUrls);
+        onComplete(result.photoUrls, deliveryComment.trim() || undefined);
       } else {
         setError(result.error || 'Failed to upload photos. Please try again.');
       }
@@ -211,6 +212,26 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
             <span className="text-sm text-gray-600">
               {photos.length} of {MAX_PHOTOS} photos selected
             </span>
+          </div>
+
+          {/* Delivery Comment Field */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Delivery Comments (Optional)
+            </label>
+            <textarea
+              value={deliveryComment}
+              onChange={(e) => setDeliveryComment(e.target.value)}
+              placeholder="Add any comments about the delivery (e.g., special instructions followed, delivery location details, customer requests, etc.)"
+              rows={3}
+              maxLength={500}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm resize-none"
+              disabled={isUploading}
+            />
+            <div className="flex justify-between items-center text-xs text-gray-500">
+              <span>Optional field for any delivery notes or special situations</span>
+              <span>{deliveryComment.length}/500</span>
+            </div>
           </div>
 
           {/* Error Message */}

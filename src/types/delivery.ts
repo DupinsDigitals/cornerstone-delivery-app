@@ -59,4 +59,5 @@ export interface Delivery {
   // Photo support - both legacy single photo and new multiple photos
   photoUrl?: string; // Legacy single photo URL
   photoUrls?: string[]; // New multiple photo URLs array
+  deliveryComment?: string; // Optional comment added by driver during completion
 }

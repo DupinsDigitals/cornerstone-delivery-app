@@ -403,6 +403,22 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             </div>
           )}
 
+          {/* Driver Delivery Comments - Show if delivery is complete and has comments */}
+          {(delivery.status === 'COMPLETE' || delivery.status === 'Complete') && delivery.deliveryComment && (
+            <div className="flex items-start space-x-3">
+              <div className="w-4 h-4 text-gray-400 mt-0.5">💬</div>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Driver Comments:</span>
+                <p className="text-gray-900 whitespace-pre-wrap break-words mt-1 bg-blue-50 p-3 rounded-md border-l-4 border-blue-400">
+                  {delivery.deliveryComment}
+                </p>
+                <p className="text-xs text-gray-500 mt-1 italic">
+                  Added by driver during delivery completion
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Truck Information */}
           <div className="flex items-start space-x-3">
             <Truck className="w-4 h-4 text-gray-400" />

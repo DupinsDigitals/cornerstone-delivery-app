@@ -290,21 +290,28 @@ export const DriverDashboard: React.FC = () => {
   };
 
   // Handle photo upload completion
-  const handlePhotoUploadComplete = async (photoUrls: string[]) => {
+  const handlePhotoUploadComplete = async (photoUrls: string[], deliveryComment?: string) => {
     const deliveryId = photoModalState.deliveryId;
     if (!deliveryId) return;
 
     try {
       // Update delivery status to COMPLETE with photo URLs
-      const updateData = {
+      const updateData: any = {
         status: 'COMPLETE',
         updatedAt: new Date().toISOString(),
         lastUpdatedBy: user?.email,
         lastUpdatedByName: user?.name || user?.email || 'Unknown Driver',
         photoUrls: photoUrls,
         photoUrl: photoUrls[0], // Keep legacy single photo field for backward compatibility
-        completedAt: new Date().toISOString()
+        completedAt: new Date().toISOString(),
+        editedBy: user?.email,
+        editedByName: user?.name || user?.email || 'Unknown Driver'
       };
+      
+      // Add delivery comment if provided
+      if (deliveryComment) {
+        updateData.deliveryComment = deliveryComment;
+      }
       
       const result = await updateDeliveryStatus(deliveryId, 'COMPLETE', updateData);
       
@@ -312,7 +319,8 @@ export const DriverDashboard: React.FC = () => {
         // Close modal and refresh deliveries
         setPhotoModalState({ deliveryId: null, clientName: '', isOpen: false });
         await loadTodaysDeliveries();
-        alert(`📸 ${photoUrls.length} photo${photoUrls.length > 1 ? 's' : ''} uploaded and delivery marked as complete!`);
+        const commentText = deliveryComment ? ' with comments' : '';
+        alert(`📸 ${photoUrls.length} photo${photoUrls.length > 1 ? 's' : ''} uploaded${commentText} and delivery marked as complete!`);
       } else {
         alert('Failed to complete delivery: ' + (result.error || 'Unknown error'));
       }
