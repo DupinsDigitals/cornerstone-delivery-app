@@ -103,14 +103,14 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       
       // FINAL VERIFICATION: Re-read document to ensure flag is set
       const verifyDoc = await snap.ref.get();
-      const verifyData = verifyDoc.exists() ? verifyDoc.data() : {};
+      const verifyData = verifyDoc.exists ? verifyDoc.data() : {};
       
       if (!verifyDoc.exists || 
           verifyData.scheduledWebhookSent !== true || 
           verifyData.webhookExecutionId !== executionId) {
         functions.logger.warn(`❌ Webhook flag verification failed for delivery ${deliveryId}, skipping webhook send - Execution: ${executionId}`);
         functions.logger.warn(`Verification details:`, {
-          docExists: verifyDoc.exists(),
+          docExists: verifyDoc.exists,
           webhookSent: verifyData.scheduledWebhookSent,
           executionId: executionId,
           storedExecutionId: verifyData.webhookExecutionId
