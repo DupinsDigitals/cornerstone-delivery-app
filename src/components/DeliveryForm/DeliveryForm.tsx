@@ -450,79 +450,46 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
           </select>
         </div>
 
-        {/* Client Information */}
-        <div className={`grid grid-cols-1 ${formData.entryType === 'regular' ? 'md:grid-cols-2' : ''} gap-6`}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <User className="w-4 h-4 inline mr-1" />
-              {formData.entryType === 'internal' ? 'Event Name *' : 
-               formData.entryType === 'equipmentMaintenance' ? 'Equipment/Task Name *' : 
-               'Client Name *'}
-            </label>
-            <input
-              type="text"
-              value={formData.clientName}
-              onChange={(e) => handleInputChange('clientName', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                errors.clientName ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder={
-                formData.entryType === 'internal' ? 'Enter event name' :
-                formData.entryType === 'equipmentMaintenance' ? 'Enter equipment/task name' :
-                'Enter client name'
-              }
-            />
-            {errors.clientName && (
-              <p className="mt-1 text-sm text-red-600">{errors.clientName}</p>
-            )}
-          </div>
-
-          {formData.entryType === 'regular' && (
+        {/* Invoice and Number of Trips - Only for Regular Deliveries */}
+        {formData.entryType === 'regular' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Phone className="w-4 h-4 inline mr-1" />
-                Client Phone *
+                <FileText className="w-4 h-4 inline mr-1" />
+                Invoice Number *
               </label>
               <input
-                type="tel"
-                value={formData.clientPhone}
-                onChange={(e) => handleInputChange('clientPhone', e.target.value)}
-                placeholder="(555) 123-4567"
-                maxLength={14}
+                type="text"
+                value={formData.invoiceNumber}
+                onChange={(e) => handleInputChange('invoiceNumber', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.clientPhone ? 'border-red-500' : 'border-gray-300'
+                  errors.invoiceNumber ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter invoice number"
+              />
+              {errors.invoiceNumber && (
+                <p className="mt-1 text-sm text-red-600">{errors.invoiceNumber}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Package className="w-4 h-4 inline mr-1" />
+                Number of Trips *
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={formData.numberOfTrips}
+                onChange={(e) => handleInputChange('numberOfTrips', parseInt(e.target.value) || 1)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  errors.numberOfTrips ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
-              {errors.clientPhone && (
-                <p className="mt-1 text-sm text-red-600">{errors.clientPhone}</p>
+              {errors.numberOfTrips && (
+                <p className="mt-1 text-sm text-red-600">{errors.numberOfTrips}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                US phone number format: (555) 123-4567
-              </p>
             </div>
-          )}
-        </div>
-
-        {/* Delivery Address */}
-        {formData.entryType === 'regular' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="w-4 h-4 inline mr-1" />
-              Delivery Address *
-            </label>
-            <input
-              ref={addressInputRef}
-              type="text"
-              value={formData.deliveryAddress}
-              onChange={(e) => handleInputChange('deliveryAddress', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                errors.deliveryAddress ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Enter delivery address"
-            />
-            {errors.deliveryAddress && (
-              <p className="mt-1 text-sm text-red-600">{errors.deliveryAddress}</p>
-            )}
           </div>
         )}
 
@@ -568,6 +535,39 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             </div>
           </div>
         )}
+        {/* Client Information */}
+        <div className={`grid grid-cols-1 ${formData.entryType === 'regular' ? 'md:grid-cols-2' : ''} gap-6`}>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <User className="w-4 h-4 inline mr-1" />
+              {formData.entryType === 'internal' ? 'Event Name *' : 
+               formData.entryType === 'equipmentMaintenance' ? 'Equipment/Task Name *' : 
+               'Client Name *'}
+            </label>
+            <input
+        {/* Delivery Address */}
+        {formData.entryType === 'regular' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <MapPin className="w-4 h-4 inline mr-1" />
+              Delivery Address *
+            </label>
+            <input
+              ref={addressInputRef}
+              type="text"
+              value={formData.deliveryAddress}
+              onChange={(e) => handleInputChange('deliveryAddress', e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                errors.deliveryAddress ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Enter delivery address"
+            />
+            {errors.deliveryAddress && (
+              <p className="mt-1 text-sm text-red-600">{errors.deliveryAddress}</p>
+            )}
+          </div>
+        )}
+
 
         {/* Store and Truck Selection - Only for Regular Deliveries and Equipment Maintenance */}
         {formData.entryType !== 'internal' && (
