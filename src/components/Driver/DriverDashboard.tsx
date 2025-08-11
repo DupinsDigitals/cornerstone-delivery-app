@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Clock, MapPin, Phone, Package, LogOut, Camera, Upload, X } from 'lucide-react';
+import { Truck, Clock, MapPin, Phone, Package, LogOut, Camera, Upload, X, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Delivery } from '../../types/delivery';
 import { getTodaysDeliveriesForStore, updateDeliveryStatus, uploadDeliveryPhotos } from '../../services/deliveryService';
@@ -718,6 +718,7 @@ export const DriverDashboard: React.FC = () => {
             {deliveries.map((delivery) => {
               const truckColor = getTruckColor(delivery.originStore, delivery.truckType);
               const textColor = getContrastTextColor(truckColor);
+              const secondaryTextColor = isDarkBackground(truckColor) ? '#e0e0e0' : '#555555';
               const isExpanded = expandedDeliveryId === delivery.id;
 
               return (
