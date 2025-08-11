@@ -197,8 +197,6 @@ export const DriverDashboard: React.FC = () => {
     setUpdatingDelivery(delivery.id);
     
     try {
-      const isOwner = delivery.startedBy === user?.email;
-      const notStarted = !delivery.startedBy;
 
       const updateData: any = {
         status: newStatus,
@@ -217,11 +215,21 @@ export const DriverDashboard: React.FC = () => {
         updateData.claimedAt = new Date().toISOString();
       }
 
+      console.log('🔄 Updating delivery status:', {
+        deliveryId: delivery.id,
+        oldStatus: delivery.status,
+        newStatus: newStatus,
+        updateData: updateData
+      });
       const result = await updateDeliveryStatus(delivery.id, newStatus, updateData);
       
+      console.log('📊 Update result:', result);
+      
       if (result.success) {
+        console.log('✅ Status update successful, refreshing deliveries...');
         await loadTodaysDeliveries();
       } else {
+        console.error('❌ Status update failed:', result.error);
         if (result.error?.includes('claimed') || result.error?.includes('another driver')) {
           alert('This delivery has been claimed by another driver.');
           await loadTodaysDeliveries();
@@ -486,6 +494,15 @@ export const DriverDashboard: React.FC = () => {
     const currentStatus = delivery.status;
     const nextStatus = getNextStatus(currentStatus);
     
+    console.log('🎯 Status button clicked:', {
+      deliveryId: delivery.id,
+      currentStatus: currentStatus,
+      nextStatus: nextStatus,
+      isOwner: isOwner,
+      notStarted: notStarted,
+      userEmail: user?.email,
+      deliveryStartedBy: delivery.startedBy
+    });
     // Special handling for COMPLETE status - require photo
     if (nextStatus === 'COMPLETE') {
       if (isOwner) {
@@ -502,8 +519,13 @@ export const DriverDashboard: React.FC = () => {
     // 2. Delivery is started by this driver - only they can progress
     if (notStarted || isOwner) {
       if (nextStatus !== currentStatus) {
+        console.log('✅ Calling handleStatusUpdate...');
         await handleStatusUpdate(delivery, nextStatus);
+      } else {
+        console.log('⚠️ Next status same as current status, no update needed');
       }
+    } else {
+      console.log('❌ User cannot update this delivery - not owner and delivery already started');
     }
   };
 

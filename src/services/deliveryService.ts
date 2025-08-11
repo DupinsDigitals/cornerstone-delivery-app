@@ -242,18 +242,30 @@ export const getTodaysDeliveriesForStore = async (store: string, date: string): 
 // Update delivery status
 export const updateDeliveryStatus = async (deliveryId: string, status: string, additionalData?: any): Promise<{ success: boolean; error?: string }> => {
   try {
+    console.log('🔧 updateDeliveryStatus called:', {
+      deliveryId,
+      status,
+      additionalData
+    });
+    
     const deliveryRef = doc(db, DELIVERIES_COLLECTION, deliveryId);
     
     // Get current delivery data to check ownership
     const deliveryDoc = await getDoc(deliveryRef);
     if (!deliveryDoc.exists()) {
+      console.error('❌ Delivery document not found:', deliveryId);
       return { success: false, error: 'Delivery not found' };
     }
     
     const currentData = deliveryDoc.data();
+    console.log('📋 Current delivery data:', currentData);
     
     // Check if delivery is already claimed by another driver
     if (currentData.startedBy && additionalData?.startedBy && currentData.startedBy !== additionalData.startedBy) {
+      console.error('❌ Delivery claimed by another driver:', {
+        currentStartedBy: currentData.startedBy,
+        attemptingStartedBy: additionalData.startedBy
+      });
       return { success: false, error: 'This delivery has been claimed by another driver' };
     }
     
@@ -262,6 +274,8 @@ export const updateDeliveryStatus = async (deliveryId: string, status: string, a
       updatedAt: serverTimestamp(),
       ...additionalData
     };
+    
+    console.log('📝 Final update data:', updateData);
     
     // Add edit history entry
     const editEntry = {
@@ -278,7 +292,9 @@ export const updateDeliveryStatus = async (deliveryId: string, status: string, a
       updateData.editHistory = [editEntry];
     }
     
+    console.log('🚀 Updating Firestore document...');
     await updateDoc(deliveryRef, updateData);
+    console.log('✅ Firestore update completed successfully');
     
     return { success: true };
   } catch (error) {
