@@ -372,9 +372,14 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
               <span className="text-sm font-medium text-gray-700">Trips:</span>
               <div className="flex items-center space-x-2 mt-1">
                 <p className="text-gray-900">{delivery.numberOfTrips || delivery.trips || 1} total</p>
-                {delivery.currentTrip && (
+                {delivery.currentTrip && !(delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE') && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
                     Viagem {delivery.currentTrip} em andamento
+                  </span>
+                )}
+                {(delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE') && (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
+                    ✅ Todas as viagens concluídas
                   </span>
                 )}
               </div>
