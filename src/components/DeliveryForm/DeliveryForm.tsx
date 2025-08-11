@@ -569,29 +569,6 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
           </div>
         )}
 
-        {/* Delivery Address */}
-        {formData.entryType === 'regular' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="w-4 h-4 inline mr-1" />
-              Delivery Address *
-            </label>
-            <input
-              ref={addressInputRef}
-              type="text"
-              value={formData.deliveryAddress}
-              onChange={(e) => handleInputChange('deliveryAddress', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                errors.deliveryAddress ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Enter delivery address"
-            />
-            {errors.deliveryAddress && (
-              <p className="mt-1 text-sm text-red-600">{errors.deliveryAddress}</p>
-            )}
-          </div>
-        )}
-
         {/* Store and Truck Selection - Only for Regular Deliveries and Equipment Maintenance */}
         {formData.entryType !== 'internal' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
