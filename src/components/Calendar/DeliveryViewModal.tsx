@@ -369,8 +369,15 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
           <div className="flex items-start space-x-3">
             <Truck className="w-4 h-4 text-gray-400" />
             <div>
-              <span className="text-sm font-medium text-gray-700">Number of Trips:</span>
-              <p className="text-gray-900">{delivery.numberOfTrips || delivery.trips || 1}</p>
+              <span className="text-sm font-medium text-gray-700">Trips:</span>
+              <div className="flex items-center space-x-2 mt-1">
+                <p className="text-gray-900">{delivery.numberOfTrips || delivery.trips || 1} total</p>
+                {delivery.currentTrip && (
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
+                    Viagem {delivery.currentTrip} em andamento
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           )}

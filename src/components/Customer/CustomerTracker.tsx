@@ -334,8 +334,15 @@ export const CustomerTracker: React.FC = () => {
                         #
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Number of Trips</p>
-                        <p className="text-gray-900">{delivery.numberOfTrips}</p>
+                        <p className="text-sm font-medium text-gray-700">Trips</p>
+                        <div className="flex items-center space-x-2">
+                          <p className="text-gray-900">{delivery.numberOfTrips} total</p>
+                          {delivery.currentTrip && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
+                              Viagem {delivery.currentTrip}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

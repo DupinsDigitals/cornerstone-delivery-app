@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Clock, MapPin, Phone, Package, LogOut, Camera, Upload } from 'lucide-react';
+import { Truck, Clock, MapPin, Phone, Package, LogOut, Camera, Upload, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Delivery } from '../../types/delivery';
 import { getTodaysDeliveriesForStore, updateDeliveryStatus, uploadDeliveryPhotos } from '../../services/deliveryService';
@@ -28,6 +28,19 @@ export const DriverDashboard: React.FC = () => {
   }>({
     deliveryId: null,
     clientName: '',
+    isOpen: false
+  });
+  const [tripModalState, setTripModalState] = useState<{
+    deliveryId: string | null;
+    clientName: string;
+    numberOfTrips: number;
+    currentTrip: number;
+    isOpen: boolean;
+  }>({
+    deliveryId: null,
+    clientName: '',
+    numberOfTrips: 1,
+    currentTrip: 1,
     isOpen: false
   });
 
@@ -348,6 +361,59 @@ export const DriverDashboard: React.FC = () => {
     });
   };
 
+  // Handle trip selection
+  const handleTripSelection = async (deliveryId: string, tripNumber: number) => {
+    if (isMasterDriver) {
+      return;
+    }
+    
+    try {
+      const updateData = {
+        currentTrip: tripNumber,
+        updatedAt: new Date().toISOString(),
+        lastUpdatedBy: user?.email,
+        lastUpdatedByName: user?.name || user?.email || 'Unknown Driver',
+        editedBy: user?.email,
+        editedByName: user?.name || user?.email || 'Unknown Driver'
+      };
+      
+      const result = await updateDeliveryStatus(deliveryId, 'GETTING LOAD', updateData);
+      
+      if (result.success) {
+        setTripModalState({ deliveryId: null, clientName: '', numberOfTrips: 1, currentTrip: 1, isOpen: false });
+        await loadTodaysDeliveries();
+        alert(`✅ Viagem ${tripNumber} selecionada e status atualizado para GETTING LOAD!`);
+      } else {
+        alert('Erro ao selecionar viagem: ' + (result.error || 'Erro desconhecido'));
+      }
+    } catch (error) {
+      console.error('Error selecting trip:', error);
+      alert('Erro ao selecionar viagem. Tente novamente.');
+    }
+  };
+
+  // Show trip selection modal
+  const showTripSelectionModal = (delivery: Delivery) => {
+    setTripModalState({
+      deliveryId: delivery.id,
+      clientName: delivery.clientName,
+      numberOfTrips: delivery.numberOfTrips || 1,
+      currentTrip: delivery.currentTrip || 1,
+      isOpen: true
+    });
+  };
+
+  // Close trip selection modal
+  const closeTripSelectionModal = () => {
+    setTripModalState({
+      deliveryId: null,
+      clientName: '',
+      numberOfTrips: 1,
+      currentTrip: 1,
+      isOpen: false
+    });
+  };
+
   const renderStatusButton = (delivery: Delivery) => {
     // For Master Driver, show read-only status
     if (isMasterDriver) {
@@ -376,6 +442,9 @@ export const DriverDashboard: React.FC = () => {
     const isComplete = status === 'COMPLETE';
     const isAboutToComplete = nextStatus === 'COMPLETE';
     const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
+
+    // Check if delivery has multiple trips
+    const hasMultipleTrips = (delivery.numberOfTrips || 1) > 1;
 
     if (isUpdating || isLocked) {
       return (
@@ -428,9 +497,20 @@ export const DriverDashboard: React.FC = () => {
     // Show interactive button - always show next status instruction
     return (
       <div className="flex items-center space-x-2">
+        {/* Trip selector for multiple trips */}
+        {hasMultipleTrips && status === 'pending' && (
+          <button
+            onClick={() => showTripSelectionModal(delivery)}
+            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold transition-all transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+            title="Selecionar viagem"
+          >
+            Viagem {delivery.currentTrip || 1}/{delivery.numberOfTrips}
+          </button>
+        )}
+        
         <button
           onClick={() => handleStatusButtonClick(delivery)}
-          className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+          className={`${hasMultipleTrips && status === 'pending' ? 'flex-1' : 'flex-1'} px-4 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg`}
           style={{
             backgroundColor: statusStyle.backgroundColor,
             color: statusStyle.color
@@ -695,8 +775,15 @@ export const DriverDashboard: React.FC = () => {
                             #
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Number of Trips:</span>
-                            <p className="text-gray-900">{delivery.numberOfTrips}</p>
+                            <span className="font-medium text-gray-700">Trips:</span>
+                            <p className="text-gray-900">
+                              {delivery.numberOfTrips} total
+                              {delivery.currentTrip && (
+                                <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
+                                  Viagem {delivery.currentTrip}
+                                </span>
+                              )}
+                            </p>
                           </div>
                         </div>
 
@@ -833,6 +920,85 @@ export const DriverDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Trip Selection Modal */}
+      {tripModalState.isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+          style={{ zIndex: 9999 }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full" style={{ zIndex: 10000 }}>
+            {/* Header */}
+            <div className="p-6 border-b bg-blue-50">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">
+                    Selecionar Viagem
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    {tripModalState.clientName}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Selecione qual viagem você está fazendo
+                  </p>
+                </div>
+                <button
+                  onClick={closeTripSelectionModal}
+                  className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-3">
+                {Array.from({ length: tripModalState.numberOfTrips }, (_, index) => {
+                  const tripNumber = index + 1;
+                  const isCurrentTrip = tripNumber === tripModalState.currentTrip;
+                  
+                  return (
+                    <button
+                      key={tripNumber}
+                      onClick={() => handleTripSelection(tripModalState.deliveryId!, tripNumber)}
+                      className={`p-4 rounded-lg border-2 transition-all transform hover:scale-105 ${
+                        isCurrentTrip
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-300 hover:border-blue-300 hover:bg-blue-50'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="text-2xl font-bold mb-1">
+                          {tripNumber}
+                        </div>
+                        <div className="text-sm">
+                          Viagem {tripNumber}
+                        </div>
+                        {isCurrentTrip && (
+                          <div className="text-xs text-blue-600 mt-1 font-medium">
+                            Atual
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t bg-gray-50">
+              <button
+                onClick={closeTripSelectionModal}
+                className="w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Photo Upload Modal */}
       {photoModalState.isOpen && (
