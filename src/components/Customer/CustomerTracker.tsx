@@ -338,8 +338,20 @@ export const CustomerTracker: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <p className="text-gray-900">{delivery.numberOfTrips} total</p>
                           {delivery.currentTrip && (
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
-                              Viagem {delivery.currentTrip}
+                            <div className="flex items-center space-x-2">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
+                                Trip {delivery.currentTrip}
+                              </span>
+                              {delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && (
+                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold animate-pulse">
+                                  In Progress
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {(delivery.status === 'COMPLETE' || delivery.status === 'Complete') && delivery.numberOfTrips > 1 && (
+                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
+                              ✅ All trips completed
                             </span>
                           )}
                         </div>
