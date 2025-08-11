@@ -3,7 +3,7 @@ import { Truck, Clock, MapPin, Phone, Package, LogOut, Camera, Upload, X } from 
 import { useAuth } from '../../contexts/AuthContext';
 import { Delivery } from '../../types/delivery';
 import { getTodaysDeliveriesForStore, updateDeliveryStatus, uploadDeliveryPhotos } from '../../services/deliveryService';
-import { getTruckColor, getContrastTextColor } from '../../utils/truckTypes';
+import { getTruckColor, getContrastTextColor, isDarkBackground } from '../../utils/truckTypes';
 import { logoutUser } from '../../services/authService';
 import { PhotoUploadModal } from './PhotoUploadModal';
 
