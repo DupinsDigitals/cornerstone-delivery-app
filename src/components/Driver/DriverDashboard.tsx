@@ -48,13 +48,13 @@ export const DriverDashboard: React.FC = () => {
 
   // Status progression mapping
   const getNextStatus = (currentStatus: string): string => {
-    switch (currentStatus) {
+    const normalizedStatus = currentStatus.toLowerCase().trim();
+    switch (normalizedStatus) {
       case 'pending':
-      case 'Pending':
         return 'GETTING LOAD';
-      case 'GETTING LOAD':
+      case 'getting load':
         return 'ON THE WAY';
-      case 'ON THE WAY':
+      case 'on the way':
         return 'COMPLETE';
       default:
         return currentStatus; // No change for COMPLETE or unknown statuses
@@ -64,33 +64,33 @@ export const DriverDashboard: React.FC = () => {
 
   // Get status button styling
   const getStatusButtonStyle = (status: string) => {
-    switch (status) {
+    const normalizedStatus = status.toLowerCase().trim();
+    switch (normalizedStatus) {
       case 'pending':
-      case 'Pending':
         return {
           backgroundColor: '#6B7280', // Gray
           color: '#FFFFFF',
           label: 'PENDING'
         };
-      case 'GETTING LOAD':
+      case 'getting load':
         return {
           backgroundColor: '#F59E0B', // Yellow/Amber
           color: '#000000',
           label: 'GETTING LOAD'
         };
-      case 'ON THE WAY':
+      case 'on the way':
         return {
           backgroundColor: '#3B82F6', // Blue
           color: '#FFFFFF',
           label: 'ON THE WAY'
         };
-      case 'COMPLETE':
+      case 'complete':
         return {
           backgroundColor: '#10B981', // Green
           color: '#FFFFFF',
           label: 'COMPLETE'
         };
-      case 'On Hold':
+      case 'on hold':
         return {
           backgroundColor: '#fd7e14', // Orange (matching sales area)
           color: '#FFFFFF',
