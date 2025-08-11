@@ -360,14 +360,11 @@ export const DriverDashboard: React.FC = () => {
       );
     }
     
-    const isOwner = delivery.startedBy === user?.email;
-    const notStarted = !delivery.startedBy;
     const status = delivery.status;
     const isUpdating = updatingDelivery === delivery.id;
     const isLocked = lockedDeliveries.has(delivery.id);
     const statusStyle = getStatusButtonStyle(status);
     const nextStatus = getNextStatus(status);
-    const canUpdate = notStarted || isOwner;
     const isComplete = status === 'COMPLETE';
     const isAboutToComplete = nextStatus === 'COMPLETE';
     const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
@@ -420,7 +417,7 @@ export const DriverDashboard: React.FC = () => {
       );
     }
     
-    // Show interactive button for deliveries that can be updated
+    // Show interactive button - always show next status instruction
     return (
       <div className="flex items-center space-x-2">
         <button
@@ -430,18 +427,12 @@ export const DriverDashboard: React.FC = () => {
             backgroundColor: statusStyle.backgroundColor,
             color: statusStyle.color
           }}
-          title={nextStatus !== status ? `Click to change to ${nextStatus}` : 'Delivery complete'}
+          title={`Click to change to ${nextStatus}`}
         >
           {statusStyle.label}
-          {isAboutToComplete ? (
-            <span className="block text-xs opacity-75">
-              Tap to → Add Photos
-            </span>
-          ) : nextStatus !== status && (
-            <span className="block text-xs opacity-75">
-              Tap to → {nextStatus}
-            </span>
-          )}
+          <span className="block text-xs opacity-75">
+            {isAboutToComplete ? 'Tap to → Add Photos' : `Tap to → ${nextStatus}`}
+          </span>
         </button>
       </div>
     );
@@ -465,8 +456,6 @@ export const DriverDashboard: React.FC = () => {
       return;
     }
 
-    const isOwner = delivery.startedBy === user?.email;
-    const notStarted = !delivery.startedBy;
     const currentStatus = delivery.status;
     const nextStatus = getNextStatus(currentStatus);
     
@@ -474,8 +463,6 @@ export const DriverDashboard: React.FC = () => {
       deliveryId: delivery.id,
       currentStatus: currentStatus,
       nextStatus: nextStatus,
-      isOwner: isOwner,
-      notStarted: notStarted,
       userEmail: user?.email,
       deliveryStartedBy: delivery.startedBy
     });
@@ -486,13 +473,9 @@ export const DriverDashboard: React.FC = () => {
       return;
     }
     
-    // Update status if it's different
-    if (nextStatus !== currentStatus) {
-      console.log('✅ Calling handleStatusUpdate...');
-      await handleStatusUpdate(delivery, nextStatus);
-    } else {
-      console.log('⚠️ Next status same as current status, no update needed');
-    }
+    // Always try to update to next status
+    console.log('✅ Calling handleStatusUpdate...');
+    await handleStatusUpdate(delivery, nextStatus);
   };
 
 
