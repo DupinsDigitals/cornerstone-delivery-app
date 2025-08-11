@@ -108,6 +108,9 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
   // Resume button: show for on-hold deliveries, but if complete delivery is on hold, only masters can resume
   const canShowResumeButton = (isSeller || isMaster) && isOnHold && (!isComplete || isMaster);
 
+  // Reset to Pending button: only masters can reset any delivery back to PENDING
+  const canShowResetButton = isMaster && delivery.status !== 'PENDING' && delivery.status !== 'Pending' && delivery.status !== 'pending';
+
   // Handle status updates for hold/resume functionality
   const handleStatusUpdate = async (newStatus: string, userInfo?: { editedBy: string; editedByName: string }) => {
     // Show confirmation for putting delivery on hold
@@ -698,6 +701,29 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
               >
                 {isUpdating ? 'Updating...' : 'Resume'}
+              </button>
+            )}
+
+            {/* Reset to Pending Button - Show to Masters only */}
+            {canShowResetButton && (
+              <button
+                onClick={() => handleStatusUpdate('PENDING', {
+                  lastUpdatedBy: user?.email || user?.username || 'Unknown',
+                  lastUpdatedByName: user?.name || user?.username || 'Unknown User',
+                  editedBy: user?.email || user?.username || 'Unknown',
+                  editedByName: user?.name || user?.username || 'Unknown User',
+                  // Clear driver assignment when resetting to pending
+                  startedBy: null,
+                  assignedDriver: null,
+                  assignedTruck: null,
+                  claimedAt: null,
+                  currentTrip: null
+                })}
+                disabled={isUpdating}
+                className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors flex items-center"
+                title="Reset delivery to PENDING status and clear driver assignment"
+              >
+                {isUpdating ? 'Updating...' : 'Reset to Pending'}
               </button>
             )}
 
