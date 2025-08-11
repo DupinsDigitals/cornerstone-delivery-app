@@ -394,6 +394,7 @@ export const DriverDashboard: React.FC = () => {
 
   // Show trip selection modal
   const showTripSelectionModal = (delivery: Delivery) => {
+    console.log('🎯 Opening trip selection modal for:', delivery.clientName, 'Trips:', delivery.numberOfTrips);
     setTripModalState({
       deliveryId: delivery.id,
       clientName: delivery.clientName,
