@@ -843,40 +843,56 @@ export const DriverDashboard: React.FC = () => {
                                 {Array.from({ length: delivery.numberOfTrips }, (_, index) => {
                                   const tripNumber = index + 1;
                                   const isSelected = delivery.currentTrip === tripNumber;
-                                  const tripEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
+                                  const isCompleted = delivery.currentTrip && tripNumber < delivery.currentTrip;
+                                  const canSelect = !delivery.currentTrip || tripNumber === delivery.currentTrip || tripNumber === (delivery.currentTrip + 1);
                                   
                                   return (
                                     <button
                                       key={tripNumber}
-                                      onClick={() => handleTripSelection(delivery.id, tripNumber)}
+                                      onClick={() => canSelect && !isCompleted ? handleTripSelection(delivery.id, tripNumber) : null}
                                       disabled={isMasterDriver}
                                       className={`text-2xl transition-all transform hover:scale-110 ${
-                                        isSelected 
-                                          ? 'filter brightness-125 drop-shadow-lg' 
-                                          : 'opacity-60 hover:opacity-80'
+                                        isCompleted
+                                          ? 'cursor-not-allowed opacity-100'
+                                          : isSelected 
+                                            ? 'filter brightness-125 drop-shadow-lg cursor-pointer' 
+                                            : canSelect
+                                              ? 'opacity-60 hover:opacity-80 cursor-pointer'
+                                              : 'opacity-30 cursor-not-allowed'
                                       } ${
                                         isMasterDriver ? 'cursor-not-allowed' : 'cursor-pointer'
                                       }`}
                                       style={{
-                                        backgroundColor: isSelected ? '#22c55e' : 'transparent',
+                                        backgroundColor: isCompleted 
+                                          ? '#10b981' 
+                                          : isSelected 
+                                            ? '#22c55e' 
+                                            : 'transparent',
                                         borderRadius: '8px',
                                         padding: '4px 8px',
-                                        border: isSelected ? '2px solid #16a34a' : '2px solid transparent'
+                                        border: (isCompleted || isSelected) ? '2px solid #16a34a' : '2px solid transparent'
                                       }}
                                       title={
-                                        isMasterDriver 
+                                        isCompleted
+                                          ? `Viagem ${tripNumber} já foi concluída`
+                                          : !canSelect
+                                            ? `Complete a viagem ${delivery.currentTrip} primeiro`
+                                            : isMasterDriver 
                                           ? 'Master drivers cannot select trips' 
                                           : `Selecionar viagem ${tripNumber}`
                                       }
                                     >
-                                      {tripEmojis[index] || `${tripNumber}️⃣`}
+                                      {isCompleted ? '✅' : isSelected ? `${tripNumber}️⃣` : `${tripNumber}️⃣`}
                                     </button>
                                   );
                                 })}
                               </div>
                               {delivery.currentTrip && (
                                 <p className="text-sm text-green-600 font-medium mt-1">
-                                  ✅ Fazendo viagem {delivery.currentTrip} de {delivery.numberOfTrips}
+                                  {delivery.currentTrip === delivery.numberOfTrips 
+                                    ? `✅ Última viagem (${delivery.currentTrip} de ${delivery.numberOfTrips})`
+                                    : `✅ Fazendo viagem ${delivery.currentTrip} de ${delivery.numberOfTrips}`
+                                  }
                                 </p>
                               )}
                             </div>
