@@ -841,8 +841,9 @@ export const DriverDashboard: React.FC = () => {
                               <span className="font-medium text-gray-700">Viagem:</span>
                               <div className="flex items-center space-x-2 mt-2">
                                 {Array.from({ length: delivery.numberOfTrips }, (_, index) => {
-                                  const tripNumber = index + 1;
-                                  const isSelected = delivery.currentTrip === tripNumber;
+                                  const isDeliveryComplete = delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE';
+                                  const isCompleted = isDeliveryComplete || (delivery.currentTrip && tripNumber < delivery.currentTrip);
+                                  const isSelected = !isDeliveryComplete && delivery.currentTrip === tripNumber;
                                   const isCompleted = delivery.currentTrip && tripNumber < delivery.currentTrip;
                                   const canSelect = !delivery.currentTrip || tripNumber === delivery.currentTrip || tripNumber === (delivery.currentTrip + 1);
                                   
@@ -850,7 +851,7 @@ export const DriverDashboard: React.FC = () => {
                                     <button
                                       key={tripNumber}
                                       onClick={() => canSelect && !isCompleted ? handleTripSelection(delivery.id, tripNumber) : null}
-                                      disabled={isMasterDriver}
+                                      disabled={isMasterDriver || isDeliveryComplete}
                                       className={`text-2xl transition-all transform hover:scale-110 ${
                                         isCompleted
                                           ? 'cursor-not-allowed opacity-100'
@@ -860,7 +861,7 @@ export const DriverDashboard: React.FC = () => {
                                               ? 'opacity-60 hover:opacity-80 cursor-pointer'
                                               : 'opacity-30 cursor-not-allowed'
                                       } ${
-                                        isMasterDriver ? 'cursor-not-allowed' : 'cursor-pointer'
+                                        isMasterDriver || isDeliveryComplete ? 'cursor-not-allowed' : 'cursor-pointer'
                                       }`}
                                       style={{
                                         backgroundColor: isCompleted 
@@ -873,11 +874,13 @@ export const DriverDashboard: React.FC = () => {
                                         border: (isCompleted || isSelected) ? '2px solid #16a34a' : '2px solid transparent'
                                       }}
                                       title={
-                                        isCompleted
+                                        isDeliveryComplete
+                                          ? `Delivery completo - todas as viagens foram concluídas`
+                                          : isCompleted
                                           ? `Viagem ${tripNumber} já foi concluída`
                                           : !canSelect
                                             ? `Complete a viagem ${delivery.currentTrip} primeiro`
-                                            : isMasterDriver 
+                                            : isMasterDriver
                                           ? 'Master drivers cannot select trips' 
                                           : `Selecionar viagem ${tripNumber}`
                                       }
@@ -887,12 +890,17 @@ export const DriverDashboard: React.FC = () => {
                                   );
                                 })}
                               </div>
-                              {delivery.currentTrip && (
+                              {delivery.currentTrip && !isDeliveryComplete && (
                                 <p className="text-sm text-green-600 font-medium mt-1">
                                   {delivery.currentTrip === delivery.numberOfTrips 
                                     ? `✅ Última viagem (${delivery.currentTrip} de ${delivery.numberOfTrips})`
                                     : `✅ Fazendo viagem ${delivery.currentTrip} de ${delivery.numberOfTrips}`
                                   }
+                                </p>
+                              )}
+                              {isDeliveryComplete && (
+                                <p className="text-sm text-green-600 font-medium mt-1">
+                                  ✅ Delivery completo - todas as {delivery.numberOfTrips} viagens foram concluídas
                                 </p>
                               )}
                             </div>
