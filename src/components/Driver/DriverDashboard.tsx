@@ -840,11 +840,7 @@ export const DriverDashboard: React.FC = () => {
                             <div>
                               <span className="font-medium text-gray-700">Viagem:</span>
                               <div className="flex items-center space-x-2 mt-2">
-                                {(() => {
-                                  const isDeliveryComplete = delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE';
-                                  
-                                  return (
-                                Array.from({ length: delivery.numberOfTrips }, (_, index) => {
+                                {Array.from({ length: delivery.numberOfTrips }, (_, index) => {
                                   const tripNumber = index + 1;
                                   const isDeliveryComplete = delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE';
                                   const isCompleted = isDeliveryComplete || (delivery.currentTrip && tripNumber < delivery.currentTrip);
@@ -892,11 +888,9 @@ export const DriverDashboard: React.FC = () => {
                                       {isCompleted ? '✅' : isSelected ? `${tripNumber}️⃣` : `${tripNumber}️⃣`}
                                     </button>
                                   );
-                                })
-                                  );
-                                })()}
+                                })}
                               </div>
-                              {delivery.currentTrip && !isDeliveryComplete && (
+                              {delivery.currentTrip && !(delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE') && (
                                 <p className="text-sm text-green-600 font-medium mt-1">
                                   {delivery.currentTrip === delivery.numberOfTrips 
                                     ? `✅ Última viagem (${delivery.currentTrip} de ${delivery.numberOfTrips})`
@@ -904,14 +898,11 @@ export const DriverDashboard: React.FC = () => {
                                   }
                                 </p>
                               )}
-                              {(() => {
-                                const isDeliveryComplete = delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE';
-                                return isDeliveryComplete && (
+                              {(delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE') && (
                                 <p className="text-sm text-green-600 font-medium mt-1">
                                   ✅ Delivery completo - todas as {delivery.numberOfTrips} viagens foram concluídas
                                 </p>
-                                );
-                              })()}
+                              )}
                             </div>
                           </div>
                         )}
