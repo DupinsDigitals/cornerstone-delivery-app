@@ -415,6 +415,15 @@ export const DriverDashboard: React.FC = () => {
   };
 
   const renderStatusButton = (delivery: Delivery) => {
+    // Debug log for trip detection
+    console.log('🔍 Delivery trip info:', {
+      id: delivery.id,
+      clientName: delivery.clientName,
+      numberOfTrips: delivery.numberOfTrips,
+      currentTrip: delivery.currentTrip,
+      status: delivery.status
+    });
+    
     // For Master Driver, show read-only status
     if (isMasterDriver) {
       const statusStyle = getStatusButtonStyle(delivery.status);
@@ -444,7 +453,7 @@ export const DriverDashboard: React.FC = () => {
     const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
 
     // Check if delivery has multiple trips
-    const hasMultipleTrips = (delivery.numberOfTrips || 1) > 1;
+    const hasMultipleTrips = delivery.numberOfTrips && delivery.numberOfTrips > 1;
 
     if (isUpdating || isLocked) {
       return (
@@ -498,7 +507,7 @@ export const DriverDashboard: React.FC = () => {
     return (
       <div className="flex items-center space-x-2">
         {/* Trip selector for multiple trips */}
-        {hasMultipleTrips && status === 'pending' && (
+        {hasMultipleTrips && (status === 'pending' || status === 'Pending') && (
           <button
             onClick={() => showTripSelectionModal(delivery)}
             className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold transition-all transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
@@ -777,7 +786,7 @@ export const DriverDashboard: React.FC = () => {
                           <div>
                             <span className="font-medium text-gray-700">Trips:</span>
                             <p className="text-gray-900">
-                              {delivery.numberOfTrips} total
+                              {delivery.numberOfTrips || 1} total
                               {delivery.currentTrip && (
                                 <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
                                   Viagem {delivery.currentTrip}
