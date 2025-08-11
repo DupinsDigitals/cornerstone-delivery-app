@@ -240,7 +240,7 @@ export const getTodaysDeliveriesForStore = async (store: string, date: string): 
 };
 
 // Update delivery status
-export const updateDeliveryStatus = async (deliveryId: string, status: string, additionalData?: any): Promise<{ success: boolean; error?: string }> => {
+export const updateDeliveryStatus = async (deliveryId: string, status: string | null, additionalData?: any): Promise<{ success: boolean; error?: string }> => {
   try {
     console.log('🔧 updateDeliveryStatus called:', {
       deliveryId,
@@ -270,20 +270,24 @@ export const updateDeliveryStatus = async (deliveryId: string, status: string, a
     }
     
     const updateData = {
-      status,
       updatedAt: serverTimestamp(),
       ...additionalData
     };
+    
+    // Only update status if provided
+    if (status !== null) {
+      updateData.status = status;
+    }
     
     console.log('📝 Final update data:', updateData);
     
     // Add edit history entry
     const editEntry = {
-      action: 'status_changed',
+      action: status ? 'status_changed' : 'trip_selected',
       editedAt: new Date().toISOString(),
       editedBy: additionalData?.lastUpdatedBy || additionalData?.editedBy || 'Unknown',
       editedByName: additionalData?.lastUpdatedByName || additionalData?.editedByName || 'Unknown User',
-      changes: `Status changed to ${status}`
+      changes: status ? `Status changed to ${status}` : `Trip ${additionalData?.currentTrip} selected`
     };
     
     if (currentData.editHistory) {

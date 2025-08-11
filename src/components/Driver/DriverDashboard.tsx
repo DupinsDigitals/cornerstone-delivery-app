@@ -377,12 +377,12 @@ export const DriverDashboard: React.FC = () => {
         editedByName: user?.name || user?.email || 'Unknown Driver'
       };
       
-      const result = await updateDeliveryStatus(deliveryId, 'GETTING LOAD', updateData);
+      // Don't change status, just update the current trip
+      const result = await updateDeliveryStatus(deliveryId, null, updateData);
       
       if (result.success) {
-        setTripModalState({ deliveryId: null, clientName: '', numberOfTrips: 1, currentTrip: 1, isOpen: false });
         await loadTodaysDeliveries();
-        alert(`✅ Viagem ${tripNumber} selecionada e status atualizado para GETTING LOAD!`);
+        console.log(`✅ Viagem ${tripNumber} selecionada!`);
       } else {
         alert('Erro ao selecionar viagem: ' + (result.error || 'Erro desconhecido'));
       }
@@ -833,6 +833,55 @@ export const DriverDashboard: React.FC = () => {
                           </div>
                         )}
 
+                        {/* Trip Selector - Simple emoji indicators */}
+                        {delivery.numberOfTrips && delivery.numberOfTrips > 1 && (
+                          <div className="flex items-start">
+                            <div className="w-4 h-4 text-gray-400 mr-2 mt-0.5">🚛</div>
+                            <div>
+                              <span className="font-medium text-gray-700">Viagem:</span>
+                              <div className="flex items-center space-x-2 mt-2">
+                                {Array.from({ length: delivery.numberOfTrips }, (_, index) => {
+                                  const tripNumber = index + 1;
+                                  const isSelected = delivery.currentTrip === tripNumber;
+                                  const tripEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
+                                  
+                                  return (
+                                    <button
+                                      key={tripNumber}
+                                      onClick={() => handleTripSelection(delivery.id, tripNumber)}
+                                      disabled={isMasterDriver}
+                                      className={`text-2xl transition-all transform hover:scale-110 ${
+                                        isSelected 
+                                          ? 'filter brightness-125 drop-shadow-lg' 
+                                          : 'opacity-60 hover:opacity-80'
+                                      } ${
+                                        isMasterDriver ? 'cursor-not-allowed' : 'cursor-pointer'
+                                      }`}
+                                      style={{
+                                        backgroundColor: isSelected ? '#22c55e' : 'transparent',
+                                        borderRadius: '8px',
+                                        padding: '4px 8px',
+                                        border: isSelected ? '2px solid #16a34a' : '2px solid transparent'
+                                      }}
+                                      title={
+                                        isMasterDriver 
+                                          ? 'Master drivers cannot select trips' 
+                                          : `Selecionar viagem ${tripNumber}`
+                                      }
+                                    >
+                                      {tripEmojis[index] || `${tripNumber}️⃣`}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              {delivery.currentTrip && (
+                                <p className="text-sm text-green-600 font-medium mt-1">
+                                  ✅ Fazendo viagem {delivery.currentTrip} de {delivery.numberOfTrips}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                         {/* Status Update Button */}
                         <div className="pt-3 border-t">
                           <div className="space-y-2">
