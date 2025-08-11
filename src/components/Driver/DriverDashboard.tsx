@@ -892,7 +892,7 @@ export const DriverDashboard: React.FC = () => {
                                       {isCompleted ? '✅' : isSelected ? `${tripNumber}️⃣` : `${tripNumber}️⃣`}
                                     </button>
                                   );
-                                })}
+                                })
                                   );
                                 })()}
                               </div>
