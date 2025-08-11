@@ -844,7 +844,7 @@ export const DriverDashboard: React.FC = () => {
                                   const isDeliveryComplete = delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE';
                                   
                                   return (
-                                {Array.from({ length: delivery.numberOfTrips }, (_, index) => {
+                                Array.from({ length: delivery.numberOfTrips }, (_, index) => {
                                   const tripNumber = index + 1;
                                   const isDeliveryComplete = delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE';
                                   const isCompleted = isDeliveryComplete || (delivery.currentTrip && tripNumber < delivery.currentTrip);
