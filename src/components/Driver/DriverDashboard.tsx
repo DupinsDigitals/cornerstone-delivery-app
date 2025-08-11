@@ -802,6 +802,23 @@ export const DriverDashboard: React.FC = () => {
                                       <p className="text-xs text-gray-500 mt-1">Click to view full size</p>
                                     </div>
                                   ) : null}
+                                  
+                                  {/* Driver Comments - Show below photos */}
+                                  {delivery.deliveryComment && (
+                                    <div className="mt-3 pt-3 border-t border-gray-200">
+                                      <div className="bg-blue-50 p-3 rounded-md border-l-4 border-blue-400">
+                                        <div className="flex items-start">
+                                          <div className="w-4 h-4 text-blue-600 mr-2 mt-0.5">💬</div>
+                                          <div className="flex-1">
+                                            <span className="text-sm font-medium text-blue-800">Driver Comments:</span>
+                                            <p className="text-sm text-blue-700 mt-1 whitespace-pre-wrap break-words">
+                                              {delivery.deliveryComment}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>

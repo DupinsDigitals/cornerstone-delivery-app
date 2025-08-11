@@ -403,22 +403,6 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             </div>
           )}
 
-          {/* Driver Delivery Comments - Show if delivery is complete and has comments */}
-          {(delivery.status === 'COMPLETE' || delivery.status === 'Complete') && delivery.deliveryComment && (
-            <div className="flex items-start space-x-3">
-              <div className="w-4 h-4 text-gray-400 mt-0.5">💬</div>
-              <div>
-                <span className="text-sm font-medium text-gray-700">Driver Comments:</span>
-                <p className="text-gray-900 whitespace-pre-wrap break-words mt-1 bg-blue-50 p-3 rounded-md border-l-4 border-blue-400">
-                  {delivery.deliveryComment}
-                </p>
-                <p className="text-xs text-gray-500 mt-1 italic">
-                  Added by driver during delivery completion
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* Truck Information */}
           <div className="flex items-start space-x-3">
             <Truck className="w-4 h-4 text-gray-400" />
@@ -509,6 +493,26 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                       <p className="text-xs text-gray-500 mt-1">Click to view full size</p>
                     </div>
                   ) : null}
+                  
+                  {/* Driver Comments - Show below photos */}
+                  {delivery.deliveryComment && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="bg-blue-50 p-3 rounded-md border-l-4 border-blue-400">
+                        <div className="flex items-start">
+                          <div className="w-4 h-4 text-blue-600 mr-2 mt-0.5">💬</div>
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-blue-800">Driver Comments:</span>
+                            <p className="text-sm text-blue-700 mt-1 whitespace-pre-wrap break-words">
+                              {delivery.deliveryComment}
+                            </p>
+                            <p className="text-xs text-blue-600 mt-2 italic">
+                              Added by driver during delivery completion
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-gray-500 italic mt-1">No delivery photo available</p>
