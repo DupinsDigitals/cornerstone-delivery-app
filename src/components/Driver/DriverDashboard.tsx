@@ -370,6 +370,7 @@ export const DriverDashboard: React.FC = () => {
     const canUpdate = notStarted || isOwner;
     const isComplete = status === 'COMPLETE';
     const isAboutToComplete = nextStatus === 'COMPLETE';
+    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
 
     if (isUpdating || isLocked) {
       return (
@@ -402,9 +403,7 @@ export const DriverDashboard: React.FC = () => {
       );
     }
 
-    // This code is now unreachable since we block at the top of handleStatusButtonClick
-    // But keeping for safety in case of edge cases
-    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
+    // Check if owned by another driver
     if (isOwnedByAnotherDriver) {
       const ownerInfo = safeString(delivery.startedBy);
       const ownerUsername = ownerInfo ? ownerInfo.split('@')[0] : '';
@@ -421,30 +420,7 @@ export const DriverDashboard: React.FC = () => {
       );
     }
     
-    if (!canUpdate) {
-      const ownerName = getSafeOwnerName(delivery);
-      const statusStyle = getStatusButtonStyle(delivery.status);
-
-      return (
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => alert(`This delivery was started by ${ownerName}. You cannot update its status.`)}
-            className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm cursor-not-allowed"
-            style={{
-              backgroundColor: statusStyle.backgroundColor,
-              color: statusStyle.color,
-              opacity: 0.5
-            }}
-            title={`Started by ${ownerName}`}
-          >
-            🚫 {statusStyle.label}
-            <span className="block text-xs opacity-75">
-              Locked by {safeString(ownerName).toUpperCase().replace(/[^A-Z0-9\s]/g, '') || 'UNKNOWN'}
-            </span>
-          </button>
-        </div>
-      );
-    }
+    // Show interactive button for deliveries that can be updated
     return (
       <div className="flex items-center space-x-2">
         <button
@@ -482,7 +458,7 @@ export const DriverDashboard: React.FC = () => {
       return; // Silently ignore if locked
     }
 
-    // CRITICAL: Block access for ANY delivery owned by another driver
+    // Block access for deliveries owned by another driver
     const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
     if (isOwnedByAnotherDriver) {
       alert('This delivery is currently in progress by another driver and cannot be edited.');
@@ -503,29 +479,19 @@ export const DriverDashboard: React.FC = () => {
       userEmail: user?.email,
       deliveryStartedBy: delivery.startedBy
     });
+    
     // Special handling for COMPLETE status - require photo
     if (nextStatus === 'COMPLETE') {
-      if (isOwner) {
-        showPhotoUploadModal(delivery.id, delivery.clientName);
-      } else {
-        const ownerName = getSafeOwnerName(delivery);
-        alert(`This delivery was started by ${ownerName} and can only be completed by them.`);
-      }
+      showPhotoUploadModal(delivery.id, delivery.clientName);
       return;
     }
     
-    // Allow progression if:
-    // 1. Delivery is not started (PENDING) - anyone can start
-    // 2. Delivery is started by this driver - only they can progress
-    if (notStarted || isOwner) {
-      if (nextStatus !== currentStatus) {
-        console.log('✅ Calling handleStatusUpdate...');
-        await handleStatusUpdate(delivery, nextStatus);
-      } else {
-        console.log('⚠️ Next status same as current status, no update needed');
-      }
+    // Update status if it's different
+    if (nextStatus !== currentStatus) {
+      console.log('✅ Calling handleStatusUpdate...');
+      await handleStatusUpdate(delivery, nextStatus);
     } else {
-      console.log('❌ User cannot update this delivery - not owner and delivery already started');
+      console.log('⚠️ Next status same as current status, no update needed');
     }
   };
 
