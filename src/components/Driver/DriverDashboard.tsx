@@ -870,6 +870,43 @@ export const DriverDashboard: React.FC = () => {
                           </div>
                         )}
 
+                        {/* Driver Assignment Info - Show for Master Driver */}
+                        {isMasterDriver && (delivery.startedBy || delivery.assignedDriver) && (
+                          <div className="flex items-start space-x-3">
+                            <User className="w-4 h-4 text-gray-400 mt-0.5" />
+                            <div>
+                              <span className="font-medium text-gray-700">Assigned Driver:</span>
+                              <div className="mt-1">
+                                <p className="text-gray-900 font-medium">{getSafeOwnerName(delivery)}</p>
+                                {delivery.claimedAt && (
+                                  <p className="text-xs text-gray-500">
+                                    Started: {new Date(delivery.claimedAt).toLocaleString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                      hour12: true
+                                    })}
+                                  </p>
+                                )}
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <div className={`w-2 h-2 rounded-full ${
+                                    delivery.status === 'COMPLETE' || delivery.status === 'Complete' 
+                                      ? 'bg-green-500' 
+                                      : 'bg-blue-500 animate-pulse'
+                                  }`} />
+                                  <span className="text-xs text-gray-600">
+                                    {delivery.status === 'COMPLETE' || delivery.status === 'Complete' 
+                                      ? 'Delivery completed' 
+                                      : 'Currently working on this delivery'
+                                    }
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Trip Selector - Simple emoji indicators */}
                         {delivery.numberOfTrips && delivery.numberOfTrips > 1 && (
                           <div className="flex items-start">
