@@ -28,16 +28,35 @@ exports.onDeliveryCreated_sendWebhook = functions.firestore
       return null;
     }
     
+    // DEBUG: Log all delivery data to identify missing fields
+    functions.logger.info(`🔍 DEBUG - Full delivery data for ${deliveryId}:`, {
+      clientName: deliveryData.clientName,
+      customerName: deliveryData.customerName,
+      clientPhone: deliveryData.clientPhone,
+      customerPhone: deliveryData.customerPhone,
+      phone: deliveryData.phone,
+      deliveryAddress: deliveryData.deliveryAddress,
+      address: deliveryData.address,
+      scheduledDate: deliveryData.scheduledDate,
+      scheduledTime: deliveryData.scheduledTime,
+      scheduledDateTime: deliveryData.scheduledDateTime,
+      status: deliveryData.status,
+      entryType: deliveryData.entryType,
+      invoiceNumber: deliveryData.invoiceNumber,
+      originStore: deliveryData.originStore,
+      store: deliveryData.store
+    });
+    
     try {
       // Pre-check: Only process PENDING deliveries
       if (deliveryData.status && deliveryData.status !== 'PENDING') {
-        functions.logger.info(`❌ Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook - Execution: ${executionId}`);
+        functions.logger.warn(`❌ Delivery ${deliveryId} status is not PENDING (${deliveryData.status}), skipping webhook - Execution: ${executionId}`);
         return null;
       }
       
       // Skip internal events and equipment maintenance
       if (deliveryData.entryType === 'internal' || deliveryData.entryType === 'equipmentMaintenance') {
-        functions.logger.info(`❌ Delivery ${deliveryId} is internal/maintenance (${deliveryData.entryType}), skipping webhook - Execution: ${executionId}`);
+        functions.logger.warn(`❌ Delivery ${deliveryId} is internal/maintenance (${deliveryData.entryType}), skipping webhook - Execution: ${executionId}`);
         return null;
       }
       
