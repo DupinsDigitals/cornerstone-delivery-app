@@ -766,6 +766,14 @@ export const DriverDashboard: React.FC = () => {
                       }}
                     >
                       {isExpanded ? 'Hide Details' : 'Show Details'}
+                      {/* Show driver name for Master Driver */}
+                      {isMasterDriver && (delivery.startedBy || delivery.assignedDriver || delivery.lastUpdatedBy) && (
+                        <div className="text-right mt-2">
+                          <div className="text-xs" style={{ color: secondaryTextColor }}>
+                            Driver: {getSafeOwnerName(delivery)}
+                          </div>
+                        </div>
+                      )}
                     </button>
                   </div>
 
