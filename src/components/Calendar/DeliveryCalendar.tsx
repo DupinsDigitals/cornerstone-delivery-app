@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Edit, Trash2, Clock, Truck, Calendar as CalendarIcon } from 'lucide-react';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Delivery } from '../../types/delivery';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTruckColor, getContrastTextColor, isDarkBackground, getTextColorForBackground } from '../../utils/truckTypes';
 import { getStoredDeliveries, deleteDelivery } from '../../utils/storage';
-import { getDeliveriesFromFirestore, updateDeliveryInFirestore } from '../../services/deliveryService';
+import { getDeliveriesFromFirestore } from '../../services/deliveryService';
 import { SearchBar } from './SearchBar';
 import { DeliveryViewModal } from './DeliveryViewModal';
 import { canCreateDeliveries } from '../../services/authService';
@@ -43,17 +42,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Configure drag sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // 8px movement required to start drag
-      },
-    })
-  );
 
   // Update current time every minute
   useEffect(() => {
@@ -645,109 +633,8 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
     }, 100);
   };
 
-  // Drag and drop handlers
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    setActiveId(active.id as string);
-    setIsDragging(true);
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
-    setIsDragging(false);
-
-    if (!over || !user || user.role !== 'master') {
-      return;
-    }
-
-    const deliveryId = active.id as string;
-    const newDate = over.id as string;
-
-    // Find the delivery being moved
-    const delivery = deliveries.find(d => d.id === deliveryId);
-    if (!delivery) {
-      return;
-    }
-
-    // Don't move if it's the same date
-    if (delivery.scheduledDate === newDate) {
-      return;
-    }
-
-    // Prevent moving deliveries that are in progress
-    if (delivery.status !== 'PENDING' && delivery.status !== 'pending' && delivery.status !== 'On Hold') {
-      alert('Cannot move deliveries that are already in progress or completed.');
-      return;
-    }
-
-    // Prevent moving to past dates
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const targetDate = new Date(newDate + 'T00:00:00');
-    
-    if (targetDate < today) {
-      alert('Cannot move deliveries to past dates.');
-      return;
-    }
-
-    // Confirm the move
-    const oldDateFormatted = new Date(delivery.scheduledDate + 'T00:00:00').toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric'
-    });
-    const newDateFormatted = targetDate.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric'
-    });
-
-    const confirmMove = window.confirm(
-      `Move delivery for ${delivery.clientName} from ${oldDateFormatted} to ${newDateFormatted}?`
-    );
-
-    if (!confirmMove) {
-      return;
-    }
-
-    try {
-      // Update the delivery date
-      const updateData = {
-        scheduledDate: newDate,
-        lastEditedBy: user.email || user.username || 'Unknown',
-        lastEditedByName: user.name || user.username || 'Unknown User',
-        lastEditedAt: new Date().toISOString()
-      };
-
-      const result = await updateDeliveryInFirestore(deliveryId, updateData);
-      
-      if (result.success) {
-        // Refresh deliveries to show the change
-        await refreshDeliveries();
-        
-        // Show success message
-        alert(`✅ Delivery moved successfully to ${newDateFormatted}`);
-      } else {
-        alert('Failed to move delivery: ' + (result.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error moving delivery:', error);
-      alert('An error occurred while moving the delivery.');
-    }
-  };
-
-  // Get the delivery being dragged for the overlay
-  const activeDelivery = activeId ? deliveries.find(d => d.id === activeId) : null;
-
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden w-full">
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden w-full">
       {/* Header */}
       <div className="p-6 border-b border-gray-200 bg-blue-100">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1000,11 +887,8 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
               return (
                 <div
                   key={dayIndex}
-                  id={date.toISOString().split('T')[0]}
                   className={`flex-1 min-w-0 last:border-r-0 relative ${
                     isToday ? 'bg-blue-50' : ''
-                  } ${
-                    user?.role === 'master' ? 'min-h-[400px]' : ''
                   }`}
                   style={{
                     borderRight: dayIndex < weekDates.length - 1 ? '2px solid #B0B0B0' : 'none',
@@ -1018,7 +902,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                     const slotKey = getSlotKey(date, timeSlot);
                     const isHighlighted = highlightedSlot === slotKey;
                     const canCreate = canCreateDeliveries(user);
-                    const isDropZone = user?.role === 'master' && isDragging;
 
                     return (
                       <div key={timeIndex} className="relative" style={{ height: '32px' }}>
@@ -1026,8 +909,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                         <div
                           className={`absolute w-full h-16 border-b border-gray-200 transition-colors duration-200 ${
                             isHighlighted ? 'bg-blue-100 ring-2 ring-blue-300' : ''
-                          } ${
-                            isDropZone ? 'bg-green-50 border-green-200' : ''
                           } ${
                             canCreate ? 'hover:bg-gray-50 cursor-pointer' : ''
                           }`}
@@ -1037,7 +918,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                             zIndex: 1,
                             borderBottom: '1px solid #E5E5E5'
                           }}
-                          onDoubleClick={!isDragging ? () => handleSlotDoubleClick(date, timeSlot) : undefined}
+                          onDoubleClick={() => handleSlotDoubleClick(date, timeSlot)}
                           title={canCreate ? 'Double-click to schedule delivery (use right margin if cards are present)' : ''}
                         />
                       </div>
@@ -1045,8 +926,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                   })}
 
                   {/* Delivery Cards */}
-                  {/* Only render delivery cards if not dragging or if this is not the active delivery */}
-                  {deliveryPositions.filter(position => !isDragging || position.delivery.id !== activeId).map((position) => {
+                  {deliveryPositions.map((position) => {
                     const { delivery } = position;
                     const canEdit = user?.role === 'master';
                     const estimatedMinutes = delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60;
@@ -1054,10 +934,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                     const isHighlighted = highlightedDelivery === delivery.id;
 
                     // Get truck color for background
-                    const canDrag = user?.role === 'master' && 
-                                   (delivery.status === 'PENDING' || delivery.status === 'pending' || delivery.status === 'On Hold');
-                    const isDragDisabled = delivery.status !== 'PENDING' && delivery.status !== 'pending' && delivery.status !== 'On Hold';
-
                     let bgColor;
                     if (delivery.entryType === 'internal') {
                       bgColor = '#880015'; // Dark red for internal events
@@ -1075,13 +951,8 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                     return (
                       <div
                         id={`delivery-${delivery.id}`}
-                        data-delivery-id={delivery.id}
                         key={delivery.id}
-                        draggable={canDrag}
-                        onDragStart={canDrag ? (e) => e.dataTransfer.setData('text/plain', delivery.id) : undefined}
-                        className={`absolute rounded-md shadow-sm hover:shadow-lg transition-all overflow-hidden ${
-                          canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
-                        } ${
+                        className={`absolute rounded-md shadow-sm hover:shadow-lg transition-all cursor-pointer overflow-hidden ${
                           isHighlighted ? 'ring-2 ring-blue-400 ring-offset-1 shadow-lg transform scale-105' : ''
                         } ${
                           isHovered ? 'shadow-lg transform scale-102' : ''
@@ -1089,9 +960,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                         style={{
                           backgroundColor: finalBgColor,
                           color: cardTextColor,
-                          opacity: isDragDisabled ? 0.7 : 1,
-                          cursor: canDrag ? 'grab' : 'pointer',
-                          userSelect: 'none',
                           position: 'absolute',
                           top: `${position.top}px`,
                           height: `${position.height}px`,
@@ -1108,14 +976,9 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                           // Ensure cards don't extend beyond their allocated space
                           maxWidth: `${position.width}%`
                         }}
-                        onDragStart={canDrag ? (e) => {
-                          e.dataTransfer.setData('text/plain', delivery.id);
-                          setActiveId(delivery.id);
-                          setIsDragging(true);
-                        } : undefined}
                         onMouseEnter={() => setHoveredDelivery(delivery.id)}
                         onMouseLeave={() => setHoveredDelivery(null)}
-                        onClick={!isDragging ? (e) => handleDeliveryClick(delivery, e) : undefined}
+                        onClick={(e) => handleDeliveryClick(delivery, e)}
                       >
                         <div className="p-2 h-full flex flex-col justify-start text-xs">
                           <div className="space-y-1">
@@ -1136,13 +999,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                             {delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
                               <div className="flex items-center space-x-1 text-xs" style={{ color: secondaryTextColor }}>
                                 <span>#{delivery.invoiceNumber}</span>
-                              </div>
-                            )}
-                            
-                            {/* Drag indicator for Master users */}
-                            {canDrag && (
-                              <div className="text-center text-xs opacity-60 mt-1">
-                                ⋮⋮ Drag to move
                               </div>
                             )}
                             
@@ -1226,55 +1082,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
           </div>
         </div>
       </div>
-      
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {activeDelivery ? (
-          <div
-            className="rounded-md shadow-lg overflow-hidden opacity-90 transform rotate-3"
-            style={{
-              backgroundColor: getTruckColorForDelivery(activeDelivery),
-              color: getContrastTextColor(getTruckColorForDelivery(activeDelivery)),
-              width: '200px',
-              minHeight: '60px',
-              border: '2px solid #3B82F6',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)'
-            }}
-          >
-            <div className="p-3">
-              <div className="font-bold text-sm truncate">
-                {activeDelivery.entryType === 'internal' ? 
-                  activeDelivery.clientName.toUpperCase() + ' (INTERNAL)' : 
-                  activeDelivery.entryType === 'equipmentMaintenance' ?
-                  activeDelivery.clientName.toUpperCase() + ' (MAINTENANCE)' :
-                  activeDelivery.clientName
-                }
-              </div>
-              {activeDelivery.entryType !== 'internal' && activeDelivery.entryType !== 'equipmentMaintenance' && (
-                <div className="text-xs opacity-90">
-                  #{activeDelivery.invoiceNumber}
-                </div>
-              )}
-              <div className="text-xs opacity-80 mt-1">
-                📅 Moving delivery...
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
-  );
-
-  // Helper function to get truck color (moved outside of component for DragOverlay)
-  function getTruckColorForDelivery(delivery: Delivery): string {
-    if (delivery.entryType === 'internal') {
-      return '#880015';
-    } else if (delivery.entryType === 'equipmentMaintenance') {
-      return getTruckColor(delivery.originStore, delivery.truckType);
-    } else {
-      return getTruckColor(delivery.originStore, delivery.truckType);
-    }
-  }
 
       {/* Legend */}
       {activeTrucks.length > 0 && (
@@ -1325,4 +1132,5 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
         />
       )}
     </div>
+  );
 };
