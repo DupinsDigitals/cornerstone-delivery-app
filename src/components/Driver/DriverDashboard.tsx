@@ -840,6 +840,10 @@ export const DriverDashboard: React.FC = () => {
                             <div>
                               <span className="font-medium text-gray-700">Viagem:</span>
                               <div className="flex items-center space-x-2 mt-2">
+                                {(() => {
+                                  const isDeliveryComplete = delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE';
+                                  
+                                  return (
                                 {Array.from({ length: delivery.numberOfTrips }, (_, index) => {
                                   const tripNumber = index + 1;
                                   const isDeliveryComplete = delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE';
@@ -889,6 +893,8 @@ export const DriverDashboard: React.FC = () => {
                                     </button>
                                   );
                                 })}
+                                  );
+                                })()}
                               </div>
                               {delivery.currentTrip && !isDeliveryComplete && (
                                 <p className="text-sm text-green-600 font-medium mt-1">
@@ -898,11 +904,14 @@ export const DriverDashboard: React.FC = () => {
                                   }
                                 </p>
                               )}
-                              {isDeliveryComplete && (
+                              {(() => {
+                                const isDeliveryComplete = delivery.status === 'Complete' || delivery.status === 'complete' || delivery.status === 'COMPLETE';
+                                return isDeliveryComplete && (
                                 <p className="text-sm text-green-600 font-medium mt-1">
                                   ✅ Delivery completo - todas as {delivery.numberOfTrips} viagens foram concluídas
                                 </p>
-                              )}
+                                );
+                              })()}
                             </div>
                           </div>
                         )}
