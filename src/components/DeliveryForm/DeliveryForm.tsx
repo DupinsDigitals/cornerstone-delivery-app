@@ -493,48 +493,6 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
           </div>
         )}
 
-        {/* Invoice and Number of Trips - Only for Regular Deliveries */}
-        {formData.entryType === 'regular' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <FileText className="w-4 h-4 inline mr-1" />
-                Invoice Number *
-              </label>
-              <input
-                type="text"
-                value={formData.invoiceNumber}
-                onChange={(e) => handleInputChange('invoiceNumber', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.invoiceNumber ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter invoice number"
-              />
-              {errors.invoiceNumber && (
-                <p className="mt-1 text-sm text-red-600">{errors.invoiceNumber}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Package className="w-4 h-4 inline mr-1" />
-                Number of Trips *
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={formData.numberOfTrips}
-                onChange={(e) => handleInputChange('numberOfTrips', parseInt(e.target.value) || 1)}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.numberOfTrips ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.numberOfTrips && (
-                <p className="mt-1 text-sm text-red-600">{errors.numberOfTrips}</p>
-              )}
-            </div>
-          </div>
-        )}
         {/* Client Information */}
         <div className={`grid grid-cols-1 ${formData.entryType === 'regular' ? 'md:grid-cols-2' : ''} gap-6`}>
           <div>
@@ -545,6 +503,46 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
                'Client Name *'}
             </label>
             <input
+              type="text"
+              value={formData.clientName}
+              onChange={(e) => handleInputChange('clientName', e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                errors.clientName ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder={
+                formData.entryType === 'internal' ? 'Enter event name' :
+                formData.entryType === 'equipmentMaintenance' ? 'Enter equipment or task name' :
+                'Enter client name'
+              }
+            />
+            {errors.clientName && (
+              <p className="mt-1 text-sm text-red-600">{errors.clientName}</p>
+            )}
+          </div>
+
+          {/* Client Phone - Only for Regular Deliveries */}
+          {formData.entryType === 'regular' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Phone className="w-4 h-4 inline mr-1" />
+                Client Phone *
+              </label>
+              <input
+                type="tel"
+                value={formData.clientPhone}
+                onChange={(e) => handleInputChange('clientPhone', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  errors.clientPhone ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="(555) 123-4567"
+              />
+              {errors.clientPhone && (
+                <p className="mt-1 text-sm text-red-600">{errors.clientPhone}</p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Delivery Address */}
         {formData.entryType === 'regular' && (
           <div>
