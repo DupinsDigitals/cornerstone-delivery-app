@@ -197,11 +197,14 @@ export const DriverDashboard: React.FC = () => {
       return; // Silently ignore if locked locally
     }
 
-    // CRITICAL: Check if another driver owns this delivery
-    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
+    // CRITICAL: Check if another driver owns this delivery - more robust check
+    const currentUserEmail = user?.email?.toLowerCase().trim();
+    const deliveryOwnerEmail = delivery.startedBy?.toLowerCase().trim();
+    const isOwnedByAnotherDriver = deliveryOwnerEmail && deliveryOwnerEmail !== currentUserEmail;
     
     if (isOwnedByAnotherDriver) {
-      alert('This delivery is currently in progress by another driver and cannot be edited.');
+      const ownerName = delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0] || 'another driver';
+      alert(`This delivery is currently in progress by ${ownerName} and cannot be edited.`);
       return;
     }
     
@@ -221,7 +224,7 @@ export const DriverDashboard: React.FC = () => {
       };
 
       // If starting a delivery (moving from PENDING), claim ownership
-      if ((delivery.status === 'pending' || delivery.status === 'Pending') && !delivery.startedBy) {
+      if ((delivery.status?.toLowerCase() === 'pending') && !delivery.startedBy) {
         updateData.startedBy = user?.email;
         updateData.assignedDriver = user?.email;
         updateData.assignedTruck = delivery.truckType;
@@ -243,8 +246,8 @@ export const DriverDashboard: React.FC = () => {
         await loadTodaysDeliveries();
       } else {
         console.error('❌ Status update failed:', result.error);
-        if (result.error?.includes('claimed') || result.error?.includes('another driver')) {
-          alert('This delivery has been claimed by another driver.');
+        if (result.error?.includes('claimed') || result.error?.includes('another driver') || result.error?.includes('driver')) {
+          alert('This delivery has been claimed by another driver and cannot be edited.');
           await loadTodaysDeliveries();
         } else {
           alert('Failed to update delivery status: ' + (result.error || 'Unknown error'));
@@ -367,6 +370,20 @@ export const DriverDashboard: React.FC = () => {
       return;
     }
     
+    // Find the delivery to check ownership
+    const delivery = deliveries.find(d => d.id === deliveryId);
+    if (delivery) {
+      const currentUserEmail = user?.email?.toLowerCase().trim();
+      const deliveryOwnerEmail = delivery.startedBy?.toLowerCase().trim();
+      const isOwnedByAnotherDriver = deliveryOwnerEmail && deliveryOwnerEmail !== currentUserEmail;
+      
+      if (isOwnedByAnotherDriver) {
+        const ownerName = delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0] || 'another driver';
+        alert(`This delivery is currently in progress by ${ownerName} and cannot be edited.`);
+        return;
+      }
+    }
+    
     try {
       const updateData = {
         currentTrip: tripNumber,
@@ -384,7 +401,12 @@ export const DriverDashboard: React.FC = () => {
         await loadTodaysDeliveries();
         console.log(`✅ Viagem ${tripNumber} selecionada!`);
       } else {
+        if (result.error?.includes('claimed') || result.error?.includes('another driver') || result.error?.includes('driver')) {
+          alert('This delivery has been claimed by another driver and cannot be edited.');
+          await loadTodaysDeliveries();
+        } else {
         alert('Erro ao selecionar viagem: ' + (result.error || 'Erro desconhecido'));
+        }
       }
     } catch (error) {
       console.error('Error selecting trip:', error);
@@ -451,7 +473,11 @@ export const DriverDashboard: React.FC = () => {
     const nextStatus = getNextStatus(status);
     const isComplete = status === 'COMPLETE';
     const isAboutToComplete = nextStatus === 'COMPLETE';
-    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
+    
+    // More robust ownership check
+    const currentUserEmail = user?.email?.toLowerCase().trim();
+    const deliveryOwnerEmail = delivery.startedBy?.toLowerCase().trim();
+    const isOwnedByAnotherDriver = deliveryOwnerEmail && deliveryOwnerEmail !== currentUserEmail;
 
     // Check if delivery has multiple trips
     const hasMultipleTrips = delivery.numberOfTrips && delivery.numberOfTrips > 1;
@@ -489,16 +515,15 @@ export const DriverDashboard: React.FC = () => {
 
     // Check if owned by another driver
     if (isOwnedByAnotherDriver) {
-      const ownerInfo = safeString(delivery.startedBy);
-      const ownerUsername = ownerInfo ? ownerInfo.split('@')[0] : '';
+      const ownerName = delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0] || 'OTHER';
       return (
         <div className="flex items-center space-x-2">
           <button
             disabled
             className="flex-1 px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold cursor-not-allowed"
-            title={`This delivery is being handled by ${ownerInfo}`}
+            title={`This delivery is being handled by ${delivery.startedBy}`}
           >
-            🚫 DRIVER: {safeString(ownerUsername).toUpperCase() || 'OTHER'}
+            🚫 DRIVER: {ownerName.toUpperCase()}
           </button>
         </div>
       );
@@ -547,10 +572,14 @@ export const DriverDashboard: React.FC = () => {
       return; // Silently ignore if locked
     }
 
-    // Block access for deliveries owned by another driver
-    const isOwnedByAnotherDriver = delivery.startedBy && delivery.startedBy !== user?.email;
+    // Block access for deliveries owned by another driver - more robust check
+    const currentUserEmail = user?.email?.toLowerCase().trim();
+    const deliveryOwnerEmail = delivery.startedBy?.toLowerCase().trim();
+    const isOwnedByAnotherDriver = deliveryOwnerEmail && deliveryOwnerEmail !== currentUserEmail;
+    
     if (isOwnedByAnotherDriver) {
-      alert('This delivery is currently in progress by another driver and cannot be edited.');
+      const ownerName = delivery.lastUpdatedByName || delivery.startedBy?.split('@')[0] || 'another driver';
+      alert(`This delivery is currently in progress by ${ownerName} and cannot be edited.`);
       return;
     }
 
