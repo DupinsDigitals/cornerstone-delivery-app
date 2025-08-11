@@ -60,4 +60,8 @@ export interface Delivery {
   photoUrl?: string; // Legacy single photo URL
   photoUrls?: string[]; // New multiple photo URLs array
   deliveryComment?: string; // Optional comment added by driver during completion
+  currentTrip?: number; // Current trip being executed (1, 2, 3, etc.)
+  tripStatus?: {
+    [tripNumber: number]: 'pending' | 'in_progress' | 'completed';
+  }; // Status of each individual trip
 }
