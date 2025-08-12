@@ -11,11 +11,30 @@ export const CustomerTracker: React.FC = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasAutoSearched, setHasAutoSearched] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Check for invoice parameter in URL and auto-search
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const invoiceParam = urlParams.get('invoice');
     
-    if (!invoiceNumber.trim()) {
+    if (invoiceParam && !hasAutoSearched) {
+      console.log('🔍 Auto-searching for invoice from URL:', invoiceParam);
+      setInvoiceNumber(invoiceParam);
+      setHasAutoSearched(true);
+      
+      // Auto-execute search after a brief delay to ensure state is set
+      setTimeout(() => {
+        performSearch(invoiceParam);
+      }, 100);
+    }
+  }, [hasAutoSearched]);
+
+  // Extract search logic into a separate function for reuse
+  const performSearch = async (searchInvoice?: string) => {
+    const invoiceToSearch = searchInvoice || invoiceNumber.trim();
+    
+    if (!invoiceToSearch) {
       setError('Please enter an invoice number');
       return;
     }
@@ -35,10 +54,10 @@ export const CustomerTracker: React.FC = () => {
         
         // Find delivery by invoice number (case-insensitive)
         const foundDelivery = deliveries.find(d => 
-          d.invoiceNumber && d.invoiceNumber.toLowerCase() === invoiceNumber.trim().toLowerCase()
+          d.invoiceNumber && d.invoiceNumber.toLowerCase() === invoiceToSearch.toLowerCase()
         );
         
-        console.log('Customer Tracker: Searching for invoice:', invoiceNumber.trim());
+        console.log('Customer Tracker: Searching for invoice:', invoiceToSearch);
         console.log('Customer Tracker: Available invoices:', deliveries.map(d => d.invoiceNumber).filter(Boolean));
         
         if (foundDelivery) {
@@ -53,7 +72,7 @@ export const CustomerTracker: React.FC = () => {
             setLastUpdateTime(new Date());
           }
         } else {
-          console.log('Customer Tracker: No delivery found with invoice:', invoiceNumber.trim());
+          console.log('Customer Tracker: No delivery found with invoice:', invoiceToSearch);
           setError('Invoice number not found. Please check your invoice number and try again.');
         }
       } else {
@@ -71,6 +90,11 @@ export const CustomerTracker: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performSearch();
   };
 
   // Auto-refresh function for live updates
