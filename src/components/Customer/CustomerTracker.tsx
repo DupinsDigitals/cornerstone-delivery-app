@@ -9,6 +9,8 @@ export const CustomerTracker: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +50,7 @@ export const CustomerTracker: React.FC = () => {
           } else {
             console.log('Customer Tracker: Showing delivery to customer');
             setDelivery(foundDelivery);
+            setLastUpdateTime(new Date());
           }
         } else {
           console.log('Customer Tracker: No delivery found with invoice:', invoiceNumber.trim());
@@ -69,6 +72,54 @@ export const CustomerTracker: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Auto-refresh function for live updates
+  const refreshDeliveryStatus = async () => {
+    if (!delivery || !invoiceNumber.trim()) return;
+    
+    setIsRefreshing(true);
+    
+    try {
+      const result = await getDeliveriesFromFirestore();
+      
+      if (result.success && result.deliveries && result.deliveries.length > 0) {
+        const updatedDelivery = result.deliveries.find(d => 
+          d.invoiceNumber && d.invoiceNumber.toLowerCase() === invoiceNumber.trim().toLowerCase()
+        );
+        
+        if (updatedDelivery && updatedDelivery.entryType !== 'internal' && updatedDelivery.entryType !== 'equipmentMaintenance') {
+          // Check if there are actual changes
+          const hasChanges = 
+            updatedDelivery.status !== delivery.status ||
+            updatedDelivery.currentTrip !== delivery.currentTrip ||
+            (updatedDelivery.photoUrls?.length || 0) !== (delivery.photoUrls?.length || 0) ||
+            updatedDelivery.deliveryComment !== delivery.deliveryComment ||
+            updatedDelivery.updatedAt !== delivery.updatedAt;
+          
+          if (hasChanges) {
+            console.log('Customer Tracker: Status updated from', delivery.status, 'to', updatedDelivery.status);
+            setDelivery(updatedDelivery);
+            setLastUpdateTime(new Date());
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing delivery status:', error);
+      // Don't show error to user for background refresh
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Set up auto-refresh when delivery is being tracked
+  useEffect(() => {
+    if (!delivery) return;
+    
+    // Refresh every 15 seconds for more frequent updates
+    const interval = setInterval(refreshDeliveryStatus, 15000);
+    
+    return () => clearInterval(interval);
+  }, [delivery, invoiceNumber]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00');
@@ -256,6 +307,26 @@ export const CustomerTracker: React.FC = () => {
         {/* Delivery Information */}
         {delivery && statusInfo && (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            {/* Live Status Indicator */}
+            <div className="bg-blue-600 text-white px-4 py-2 text-center text-sm">
+              <div className="flex items-center justify-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${isRefreshing ? 'bg-yellow-300' : 'bg-green-300'} animate-pulse`}></div>
+                <span className="font-medium">
+                  {isRefreshing ? 'Updating...' : 'Live Status Tracking'}
+                </span>
+                {lastUpdateTime && (
+                  <span className="text-blue-200 text-xs">
+                    • Last updated: {lastUpdateTime.toLocaleTimeString('en-US', { 
+                      hour: 'numeric', 
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: true 
+                    })}
+                  </span>
+                )}
+              </div>
+            </div>
+            
             {/* Status Header */}
             <div className={`${statusInfo.bgColor} px-6 py-4 border-b`}>
               <div className="flex items-center justify-center">
@@ -263,9 +334,15 @@ export const CustomerTracker: React.FC = () => {
                 <div className="text-center">
                   <h2 className={`text-2xl font-bold ${statusInfo.color}`}>
                     {statusInfo.label}
+                    {delivery.currentTrip && delivery.numberOfTrips > 1 && 
+                      ` (Trip ${delivery.currentTrip} of ${delivery.numberOfTrips})`
+                    }
                   </h2>
                   <p className={`text-sm ${statusInfo.color} mt-1`}>
                     {statusInfo.description}
+                    {delivery.currentTrip && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && 
+                      ` Currently on trip ${delivery.currentTrip}.`
+                    }
                   </p>
                 </div>
               </div>
@@ -343,7 +420,7 @@ export const CustomerTracker: React.FC = () => {
                                 Trip {delivery.currentTrip}
                               </span>
                               {delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && (
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold animate-pulse">
+                                <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold animate-pulse">
                                   In Progress
                                 </span>
                               )}
