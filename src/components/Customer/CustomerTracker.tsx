@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Package, Clock, MapPin, Phone, Truck, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
 import { getDeliveriesFromFirestore } from '../../services/deliveryService';
