@@ -125,7 +125,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
 
       {/* Search Results Dropdown */}
       {isOpen && searchResults.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-[9999] max-h-96 overflow-y-auto">
           <div className="p-2 border-b border-gray-100 bg-gray-50">
             <span className="text-xs text-gray-600 font-medium">
               {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
@@ -198,7 +198,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
 
       {/* No Results Message */}
       {isOpen && searchResults.length === 0 && searchTerm.trim().length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 p-4 text-center">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-[9999] p-4 text-center">
           <div className="text-gray-500 text-sm">
             No deliveries found for "{searchTerm}"
           </div>
