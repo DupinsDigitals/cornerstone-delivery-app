@@ -3,6 +3,12 @@ import { Search, Package, Clock, MapPin, Phone, Truck, Calendar, CheckCircle, Al
 import { Delivery } from '../../types/delivery';
 import { getDeliveriesFromFirestore } from '../../services/deliveryService';
 
+// Google Review Links for each store
+const GOOGLE_REVIEW_LINKS = {
+  Framingham: 'https://g.page/r/Ceg1BxdAGVKhEBM/review',
+  Marlborough: 'https://g.page/r/CazNQrgXMGlzEBM/review'
+};
+
 export const CustomerTracker: React.FC = () => {
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [delivery, setDelivery] = useState<Delivery | null>(null);
@@ -548,6 +554,40 @@ export const CustomerTracker: React.FC = () => {
               )}
             </div>
 
+            {/* Google Review Section - Only show for completed deliveries */}
+            {(delivery.status === 'COMPLETE' || delivery.status === 'Complete') && (
+              <div className="border-t pt-6">
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 text-center border border-green-200">
+                  <div className="mb-4">
+                    <div className="text-4xl mb-2">🌟</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      Delivery Complete!
+                    </h3>
+                    <p className="text-gray-700 mb-4">
+                      We hope you're thrilled with your delivery! Your experience matters to us and helps other customers make confident choices.
+                    </p>
+                    <p className="text-sm text-gray-600 mb-6">
+                      Would you take a moment to share your experience? It only takes 30 seconds and means the world to our team!
+                    </p>
+                  </div>
+                  
+                  <a
+                    href={GOOGLE_REVIEW_LINKS[delivery.originStore as keyof typeof GOOGLE_REVIEW_LINKS]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-lg hover:from-yellow-500 hover:to-orange-600 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                  >
+                    <span className="text-xl mr-2">⭐</span>
+                    Leave a Review for {delivery.originStore} Store
+                    <span className="text-xl ml-2">⭐</span>
+                  </a>
+                  
+                  <p className="text-xs text-gray-500 mt-3">
+                    Your review helps us improve and helps other customers choose Cornerstone Landscape Supplies
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Contact Information */}
             <div className="bg-gray-50 px-6 py-4 border-t">
               <div className="text-center">
