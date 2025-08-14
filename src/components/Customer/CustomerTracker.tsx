@@ -578,7 +578,7 @@ export const CustomerTracker: React.FC = () => {
                     className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-lg hover:from-yellow-500 hover:to-orange-600 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
                   >
                     <span className="text-xl mr-2">⭐</span>
-                    Leave a Review for {delivery.originStore} Store
+                    Leave a Review for Cornerstone
                     <span className="text-xl ml-2">⭐</span>
                   </a>
                   
