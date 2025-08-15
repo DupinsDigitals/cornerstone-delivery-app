@@ -35,15 +35,33 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
     }
 
     const term = searchTerm.toLowerCase().trim();
+    console.log('🔍 Searching for:', term);
+    console.log('📋 Total deliveries to search:', allDeliveries.length);
+    
+    // Log all invoice numbers for debugging
+    const allInvoices = allDeliveries.map(d => d.invoiceNumber).filter(Boolean);
+    console.log('📄 All invoice numbers:', allInvoices);
+    
     const filtered = allDeliveries.filter(delivery => {
       // Search in client name (partial match, case-insensitive)
       const clientMatch = (delivery.clientName || '').toLowerCase().includes(term);
       
       // Search in invoice number (exact or partial match, case-insensitive)
-      const invoiceMatch = (delivery.invoiceNumber || '').toString().toLowerCase().includes(term);
+      const invoiceStr = (delivery.invoiceNumber || '').toString().toLowerCase();
+      const invoiceMatch = invoiceStr.includes(term);
+      
+      // Debug logging for invoice matching
+      if (term.startsWith('164')) {
+        console.log(`🔍 Checking invoice: "${delivery.invoiceNumber}" (${invoiceStr}) against "${term}" → ${invoiceMatch}`);
+      }
       
       return clientMatch || invoiceMatch;
     });
+    
+    console.log('✅ Filtered results:', filtered.length);
+    if (filtered.length > 0) {
+      console.log('📋 Found deliveries:', filtered.map(d => ({ client: d.clientName, invoice: d.invoiceNumber })));
+    }
 
     // Sort results by date (most recent first) and limit to 50 results for performance
     const sortedResults = filtered
