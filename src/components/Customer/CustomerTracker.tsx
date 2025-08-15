@@ -378,6 +378,16 @@ export const CustomerTracker: React.FC = () => {
               </div>
             </div>
 
+            {/* Delivery Details */}
+            <div className="p-6 space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Delivery Information</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start">
+                      <Package className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                      <div>
                         <p className="text-sm font-medium text-gray-700">Invoice Number</p>
                         <p className="text-gray-900">#{delivery.invoiceNumber}</p>
                       </div>
@@ -389,6 +399,9 @@ export const CustomerTracker: React.FC = () => {
                         <p className="text-sm font-medium text-gray-700">Scheduled Delivery</p>
                         <p className="text-gray-900">
                           {formatDate(delivery.scheduledDate)}
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          at {formatTime(delivery.scheduledTime)}
                         </p>
                       </div>
                     </div>
@@ -551,11 +564,10 @@ export const CustomerTracker: React.FC = () => {
                       Delivery Complete!
                     </h3>
                     <p className="text-gray-700 mb-4">
-                      We hope you're thrilled with your delivery! Your experience matters to us and helps other customers make confident choices. 
-                      <strong>Please click the button below to share your experience!</strong>
+                      We hope you're thrilled with your delivery! Your experience matters to us and helps other customers make confident choices.
                     </p>
                     <p className="text-sm text-gray-600 mb-6">
-                      It only takes 30 seconds and means the world to our team. <strong>Just click the review button!</strong>
+                      Would you take a moment to share your experience? It only takes 30 seconds and means the world to our team!
                     </p>
                   </div>
                   
@@ -563,15 +575,15 @@ export const CustomerTracker: React.FC = () => {
                     href={GOOGLE_REVIEW_LINKS[delivery.originStore as keyof typeof GOOGLE_REVIEW_LINKS]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-lg hover:from-yellow-500 hover:to-orange-600 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl animate-pulse"
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-lg hover:from-yellow-500 hover:to-orange-600 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
                   >
                     <span className="text-xl mr-2">⭐</span>
-                    👆 CLICK HERE to Leave a Review! 👆
+                    Leave a Review for Cornerstone
                     <span className="text-xl ml-2">⭐</span>
                   </a>
                   
                   <p className="text-xs text-gray-500 mt-3">
-                    <strong>Click the button above!</strong> Your review helps us improve and helps other customers choose Cornerstone Landscape Supplies
+                    Your review helps us improve and helps other customers choose Cornerstone Landscape Supplies
                   </p>
                 </div>
               </div>
