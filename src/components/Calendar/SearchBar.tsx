@@ -39,8 +39,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
       // Search in client name (partial match, case-insensitive)
       const clientMatch = (delivery.clientName || '').toLowerCase().includes(term);
       
-      // Search in invoice number (exact or partial match)
-      const invoiceMatch = (delivery.invoiceNumber || '').toLowerCase().includes(term);
+      // Search in invoice number (exact or partial match, case-insensitive)
+      const invoiceMatch = (delivery.invoiceNumber || '').toString().toLowerCase().includes(term);
       
       return clientMatch || invoiceMatch;
     });
