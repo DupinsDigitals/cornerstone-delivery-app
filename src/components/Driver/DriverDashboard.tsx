@@ -786,16 +786,12 @@ export const DriverDashboard: React.FC = () => {
                           <Clock className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                           <div>
                             <span className="font-medium text-gray-700">Schedule:</span>
-                            <div className="mt-1 space-y-1">
-                              <p className="text-gray-900">
-                                <span className="font-medium">Start:</span> {formatTime(safeString(delivery.scheduledTime))}
-                              </p>
+                            <p className="text-gray-900 mt-1">
+                              Start: {formatTime(safeString(delivery.scheduledTime))}
                               {delivery.endTime && (
-                                <p className="text-gray-900">
-                                  <span className="font-medium">End:</span> {formatTime(safeString(delivery.endTime))}
-                                </p>
+                                <span> • End: {formatTime(safeString(delivery.endTime))}</span>
                               )}
-                            </div>
+                            </p>
                           </div>
                         </div>
 
