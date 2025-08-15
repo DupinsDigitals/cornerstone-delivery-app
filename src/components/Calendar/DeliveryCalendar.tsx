@@ -607,9 +607,9 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
   };
 
   const handleViewDelivery = (delivery: Delivery) => {
-    // Enhanced highlight with longer duration and more visual impact
+    // Enhanced highlight with much longer duration and more visual impact
     setHighlightedDelivery(delivery.id);
-    setTimeout(() => setHighlightedDelivery(null), 8000); // 8 seconds instead of 3
+    setTimeout(() => setHighlightedDelivery(null), 12000); // 12 seconds for better visibility
 
     const deliveryDate = new Date(delivery.scheduledDate + 'T00:00:00');
     const currentWeekStart = getWeekDates(currentWeek)[0];
@@ -956,12 +956,12 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                         id={`delivery-${delivery.id}`}
                         key={delivery.id}
                         className={`absolute rounded-md shadow-sm hover:shadow-lg transition-all cursor-pointer overflow-hidden ${
-                          isHighlighted ? 'ring-2 ring-blue-400 ring-offset-1 shadow-lg transform scale-105' : ''
+                          isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 shadow-2xl transform scale-110 animate-pulse' : ''
                         } ${
                           isHovered ? 'shadow-lg transform scale-102' : ''
                         }`}
                         style={{
-                          backgroundColor: finalBgColor,
+                          backgroundColor: isHighlighted ? '#FEF3C7' : finalBgColor, // Light yellow background when highlighted
                           color: cardTextColor,
                           position: 'absolute',
                           top: `${position.top}px`,
@@ -972,10 +972,12 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                           zIndex: position.zIndex + 100,
                           margin: '2px',
                           minHeight: `${slotHeight}px`,
-                          border: '1px solid #000',
+                          border: isHighlighted ? '3px solid #F59E0B' : '1px solid #000', // Thicker orange border when highlighted
                           borderRadius: '4px',
                           boxSizing: 'border-box',
-                          boxShadow: '0 0 2px rgba(0, 0, 0, 0.3)',
+                          boxShadow: isHighlighted 
+                            ? '0 0 20px rgba(245, 158, 11, 0.8), 0 0 40px rgba(245, 158, 11, 0.4)' 
+                            : '0 0 2px rgba(0, 0, 0, 0.3)', // Glowing effect when highlighted
                           // Ensure cards don't extend beyond their allocated space
                           maxWidth: `${position.width}%`
                         }}
@@ -995,13 +997,13 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                               </div>
                             ) : (
                               <div className="font-bold text-xs truncate leading-tight">
-                                {delivery.clientName}
+                                {isHighlighted ? `🔍 ${delivery.clientName}` : delivery.clientName}
                               </div>
                             )}
                             
                             {delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
                               <div className="flex items-center space-x-1 text-xs" style={{ color: secondaryTextColor }}>
-                                <span>#{delivery.invoiceNumber}</span>
+                                <span>{isHighlighted ? `🎯 #${delivery.invoiceNumber}` : `#${delivery.invoiceNumber}`}</span>
                               </div>
                             )}
                             
