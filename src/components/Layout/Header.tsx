@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Truck, User, Users, Search } from 'lucide-react';
+import { LogOut, Truck, User, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { logoutUser } from '../../services/authService';
 
@@ -52,18 +52,6 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateToUserManagement, curr
                  user?.role === 'masterDriver' ? 'Master Driver' : 'Sales Rep'}
               </span>
             </div>
-            
-            {/* Customer Tracker Link - Available to all users */}
-            <a
-              href="/track"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center text-sm px-3 py-1 rounded-md transition-colors text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-              title="Open customer delivery tracker (public)"
-            >
-              <Search className="w-4 h-4 mr-1" />
-              Customer Tracker
-            </a>
             
             {/* User Management Button - Only for Master Users */}
             {user?.role === 'master' && onNavigateToUserManagement && (
