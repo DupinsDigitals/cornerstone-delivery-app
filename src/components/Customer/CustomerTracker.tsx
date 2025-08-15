@@ -378,115 +378,108 @@ export const CustomerTracker: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Delivery Information</h3>
-                <div className="space-y-3">
-                  <div className="flex items-start">
-                    <div className="w-5 h-5 text-gray-400 mr-3 mt-0.5 flex items-center justify-center">
-                      📋
+                        <p className="text-sm font-medium text-gray-700">Invoice Number</p>
+                        <p className="text-gray-900">#{delivery.invoiceNumber}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Invoice Number</p>
-                      <p className="text-gray-900">#{delivery.invoiceNumber}</p>
+                    
+                    <div className="flex items-start">
+                      <Calendar className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Scheduled Delivery</p>
+                        <p className="text-gray-900">
+                          {formatDate(delivery.scheduledDate)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <Calendar className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Scheduled Delivery</p>
-                      <p className="text-gray-900">
-                        {formatDate(delivery.scheduledDate)}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex items-start">
-                    <MapPin className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Delivery Address</p>
-                      <p className="text-gray-900">{delivery.deliveryAddress}</p>
+                    <div className="flex items-start">
+                      <MapPin className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Delivery Address</p>
+                        <p className="text-gray-900">{delivery.deliveryAddress}</p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Driver Information - Show for GETTING LOAD, ON THE WAY, and COMPLETE */}
-                  {(delivery.status === 'GETTING LOAD' || 
-                    delivery.status === 'Getting Load' || 
-                    delivery.status === 'ON THE WAY' || 
-                    delivery.status === 'On the Way' || 
-                    delivery.status === 'COMPLETE' || 
-                    delivery.status === 'Complete') && 
-                   (delivery.lastUpdatedByName || delivery.startedBy) && (
+                    {/* Driver Information - Show for GETTING LOAD, ON THE WAY, and COMPLETE */}
+                    {(delivery.status === 'GETTING LOAD' || 
+                      delivery.status === 'Getting Load' || 
+                      delivery.status === 'ON THE WAY' || 
+                      delivery.status === 'On the Way' || 
+                      delivery.status === 'COMPLETE' || 
+                      delivery.status === 'Complete') && 
+                     (delivery.lastUpdatedByName || delivery.startedBy) && (
+                      <div className="flex items-start">
+                        <div className="w-5 h-5 text-gray-400 mr-3 mt-0.5 flex items-center justify-center">
+                          👤
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            {delivery.status === 'COMPLETE' || delivery.status === 'Complete' 
+                              ? 'Delivered by' 
+                              : 'Driver'}
+                          </p>
+                          <p className="text-gray-900 font-medium">
+                            {delivery.lastUpdatedByName || 
+                             (delivery.startedBy ? delivery.startedBy.split('@')[0] : 'Driver')}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start">
+                      <Truck className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Truck & Location</p>
+                        <p className="text-gray-900">{delivery.truckType}</p>
+                        <p className="text-gray-600 text-sm">{delivery.originStore} Store</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start">
+                      <Package className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Material</p>
+                        <p className="text-gray-900">{delivery.materialDescription}</p>
+                      </div>
+                    </div>
+
                     <div className="flex items-start">
                       <div className="w-5 h-5 text-gray-400 mr-3 mt-0.5 flex items-center justify-center">
-                        👤
+                        #
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-700">
-                          {delivery.status === 'COMPLETE' || delivery.status === 'Complete' 
-                            ? 'Delivered by' 
-                            : 'Driver'}
-                        </p>
-                        <p className="text-gray-900 font-medium">
-                          {delivery.lastUpdatedByName || 
-                           (delivery.startedBy ? delivery.startedBy.split('@')[0] : 'Driver')}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h3>
-                <div className="space-y-3">
-                  <div className="flex items-start">
-                    <Truck className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Truck & Location</p>
-                      <p className="text-gray-900">{delivery.truckType}</p>
-                      <p className="text-gray-600 text-sm">{delivery.originStore} Store</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <Package className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Material</p>
-                      <p className="text-gray-900">{delivery.materialDescription}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <Truck className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Trips</p>
-                      <div className="flex items-center space-x-2">
-                        <p className="text-gray-900">{delivery.numberOfTrips} total</p>
-                        {delivery.currentTrip && (
-                          <div className="flex items-center space-x-2">
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
-                              Trip {delivery.currentTrip}
-                            </span>
-                            {delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && (
-                              <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold animate-pulse">
-                                In Progress
+                        <p className="text-sm font-medium text-gray-700">Trips</p>
+                        <div className="flex items-center space-x-2">
+                          <p className="text-gray-900">{delivery.numberOfTrips} total</p>
+                          {delivery.currentTrip && (
+                            <div className="flex items-center space-x-2">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
+                                Trip {delivery.currentTrip}
                               </span>
-                            )}
-                          </div>
-                        )}
-                        {(delivery.status === 'COMPLETE' || delivery.status === 'Complete') && delivery.numberOfTrips > 1 && (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
-                            ✅ All trips completed
-                          </span>
-                        )}
+                              {delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && (
+                                <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold animate-pulse">
+                                  In Progress
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {(delivery.status === 'COMPLETE' || delivery.status === 'Complete') && delivery.numberOfTrips > 1 && (
+                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
+                              ✅ All trips completed
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
               {/* Additional Notes */}
               {delivery.additionalNotes && (
@@ -550,7 +543,7 @@ export const CustomerTracker: React.FC = () => {
 
             {/* Google Review Section - Only show for completed deliveries */}
             {(delivery.status === 'COMPLETE' || delivery.status === 'Complete') && (
-              <div className="p-6 border-t">
+              <div className="border-t pt-6">
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 text-center border border-green-200">
                   <div className="mb-4">
                     <div className="text-4xl mb-2">🌟</div>
