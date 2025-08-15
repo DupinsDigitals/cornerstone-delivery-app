@@ -265,7 +265,7 @@ export const CustomerTracker: React.FC = () => {
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Track Your Delivery</h1>
-            <p className="text-gray-600">Enter your invoice number to check your delivery status</p>
+            <p className="text-gray-600">Real-time delivery tracking and updates</p>
           </div>
         </div>
       </div>
