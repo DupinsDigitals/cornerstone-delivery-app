@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, Eye, Edit, Trash2, Calendar, MapPin, Phone, Truck, Clock } from 'lucide-react';
+import { Search, X, Eye, Edit, Trash2, Calendar, MapPin, Phone, Truck, Clock, Package } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
 import { getStoredDeliveries } from '../../utils/storage';
 import { getDeliveriesFromFirestore } from '../../services/deliveryService';
@@ -195,87 +195,96 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                   <div
                     key={delivery.id}
                     onClick={() => handleResultClick(delivery)}
-                    className="p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                    className="p-4 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-all duration-200 hover:shadow-sm"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900 truncate">
-                            🔍 {delivery.clientName}
+                    <div className="space-y-3">
+                      {/* Header with client name and invoice */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <h3 className="text-lg font-bold text-gray-900">
+                            {delivery.clientName}
                           </h3>
-                          <span className="text-sm font-medium text-gray-600">
-                            🎯 #{delivery.invoiceNumber}
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm font-semibold">
+                            #{delivery.invoiceNumber}
                           </span>
                         </div>
                         
-                        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>{formatDate(delivery.scheduledDate)} at {formatTime(delivery.scheduledTime)}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="w-4 h-4" />
-                            <span className="truncate">{delivery.originStore}</span>
-                          </div>
-                          {delivery.clientPhone && (
-                            <div className="flex items-center space-x-1">
-                              <Phone className="w-4 h-4" />
-                              <span>{delivery.clientPhone}</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="text-sm text-gray-600">
-                          <span className="truncate">{delivery.materialDescription}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col items-end space-y-2 ml-4">
+                        {/* Truck badge */}
                         <div 
-                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm"
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-sm"
                           style={{ backgroundColor: bgColor, color: textColor }}
                         >
                           <Truck className="w-3 h-3 mr-1" />
                           {delivery.truckType.replace(' (10 tons)', '').replace(' (22 tons)', '')}
                         </div>
-                        
-                        <div className="flex items-center space-x-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedDelivery(delivery);
-                            }}
-                            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                            title="View details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEditDelivery(delivery);
-                              setShowResults(false);
-                            }}
-                            className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
-                            title="Edit delivery"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteDelivery(delivery.id);
-                              setShowResults(false);
-                            }}
-                            className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                            title="Delete delivery"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                      </div>
+
+                      {/* Date and time */}
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Calendar className="w-4 h-4 mr-2 text-blue-500" />
+                        <span className="font-medium">{formatDate(delivery.scheduledDate)}</span>
+                        <span className="mx-2">•</span>
+                        <Clock className="w-4 h-4 mr-1 text-green-500" />
+                        <span>{formatTime(delivery.scheduledTime)}</span>
+                      </div>
+
+                      {/* Location and phone */}
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <MapPin className="w-4 h-4 mr-2 text-red-500" />
+                          <span className="font-medium">{delivery.originStore}</span>
                         </div>
+                        {delivery.clientPhone && (
+                          <div className="flex items-center">
+                            <Phone className="w-4 h-4 mr-1 text-purple-500" />
+                            <span className="text-xs">{delivery.clientPhone}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Material description */}
+                      <div className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-md">
+                        <Package className="w-4 h-4 inline mr-2 text-orange-500" />
+                        <span className="font-medium">Material:</span> {delivery.materialDescription}
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-100">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDelivery(delivery);
+                          }}
+                          className="flex items-center px-3 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors font-medium"
+                          title="View details"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          View
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditDelivery(delivery);
+                            setShowResults(false);
+                          }}
+                          className="flex items-center px-3 py-1 text-xs bg-green-100 text-green-700 hover:bg-green-200 rounded-md transition-colors font-medium"
+                          title="Edit delivery"
+                        >
+                          <Edit className="w-3 h-3 mr-1" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteDelivery(delivery.id);
+                            setShowResults(false);
+                          }}
+                          className="flex items-center px-3 py-1 text-xs bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition-colors font-medium"
+                          title="Delete delivery"
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Delete
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -284,7 +293,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             </>
           ) : (
             <div className="p-4 text-center text-gray-500">
-              No deliveries found matching "{searchTerm}"
+              <div className="py-8">
+                <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">No deliveries found</p>
+                <p className="text-sm text-gray-400">Try searching by client name or invoice number</p>
+              </div>
             </div>
           )}
         </div>
