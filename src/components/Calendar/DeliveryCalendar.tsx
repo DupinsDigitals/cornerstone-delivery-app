@@ -1018,6 +1018,9 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
 
                           {canEdit && (
                             <div className="flex space-x-1 mt-auto pt-1 flex-shrink-0">
+                              {/* Only show edit/delete buttons if delivery is not COMPLETE */}
+                              {delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
+                                <>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1044,6 +1047,8 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                               >
                                 <Trash2 className="w-2.5 h-2.5" />
                               </button>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>

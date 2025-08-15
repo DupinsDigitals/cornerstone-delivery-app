@@ -771,7 +771,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             )}
 
             {/* Edit Button - Show to Masters */}
-            {canEdit && onEdit && (
+            {canEdit && onEdit && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
               <button
                 onClick={handleEdit}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
@@ -782,7 +782,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             )}
 
             {/* Delete Button - Show to Masters */}
-            {canEdit && onDelete && (
+            {canEdit && onDelete && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
               <button
                 onClick={handleDelete}
                 className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center"

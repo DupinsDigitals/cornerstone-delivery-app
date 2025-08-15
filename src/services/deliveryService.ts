@@ -137,6 +137,11 @@ export const updateDeliveryInFirestore = async (deliveryId: string, updateData: 
     
     const currentData = deliveryDoc.data();
     
+    // Protect COMPLETE deliveries from being edited
+    if (currentData.status === 'COMPLETE' || currentData.status === 'Complete' || currentData.status === 'complete') {
+      return { success: false, error: 'Cannot modify completed deliveries' };
+    }
+    
     // Filter out undefined values to prevent Firestore errors
     const cleanedData = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined)
