@@ -38,21 +38,33 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
     console.log('🔍 Searching for:', term);
     console.log('📋 Total deliveries to search:', allDeliveries.length);
     
-    // Log all invoice numbers for debugging
-    const allInvoices = allDeliveries.map(d => d.invoiceNumber).filter(Boolean);
-    console.log('📄 All invoice numbers:', allInvoices);
+    // Enhanced debugging - log each delivery's invoice number and type
+    console.log('📄 All deliveries with invoice numbers:');
+    allDeliveries.forEach((delivery, index) => {
+      console.log(`  ${index + 1}. Invoice: "${delivery.invoiceNumber}" (type: ${typeof delivery.invoiceNumber}) - Client: ${delivery.clientName}`);
+    });
     
     const filtered = allDeliveries.filter(delivery => {
       // Search in client name (partial match, case-insensitive)
       const clientMatch = (delivery.clientName || '').toLowerCase().includes(term);
       
       // Search in invoice number (exact or partial match, case-insensitive)
-      const invoiceStr = (delivery.invoiceNumber || '').toString().toLowerCase();
+      const invoiceNumber = delivery.invoiceNumber;
+      const invoiceStr = invoiceNumber ? invoiceNumber.toString().toLowerCase() : '';
       const invoiceMatch = invoiceStr.includes(term);
       
-      // Debug logging for invoice matching
-      if (term.startsWith('164')) {
-        console.log(`🔍 Checking invoice: "${delivery.invoiceNumber}" (${invoiceStr}) against "${term}" → ${invoiceMatch}`);
+      // Enhanced debug logging for specific searches
+      if (term === '164321' || term.startsWith('164')) {
+        console.log(`🔍 Checking delivery:`, {
+          client: delivery.clientName,
+          originalInvoice: delivery.invoiceNumber,
+          invoiceType: typeof delivery.invoiceNumber,
+          processedInvoice: invoiceStr,
+          searchTerm: term,
+          clientMatch,
+          invoiceMatch,
+          overallMatch: clientMatch || invoiceMatch
+        });
       }
       
       return clientMatch || invoiceMatch;
@@ -61,6 +73,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
     console.log('✅ Filtered results:', filtered.length);
     if (filtered.length > 0) {
       console.log('📋 Found deliveries:', filtered.map(d => ({ client: d.clientName, invoice: d.invoiceNumber })));
+    } else {
+      console.log('❌ No deliveries found for search term:', term);
     }
 
     // Sort results by date (most recent first) and limit to 50 results for performance
