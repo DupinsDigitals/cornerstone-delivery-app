@@ -28,71 +28,92 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
 
   // Handle search functionality
   useEffect(() => {
-    if (searchTerm.trim().length === 0) {
+    const trimmedTerm = searchTerm.trim();
+    
+    if (trimmedTerm.length === 0) {
       setSearchResults([]);
       setIsOpen(false);
       return;
     }
 
-    // Only start searching after 2 characters to avoid too many results
-    if (searchTerm.trim().length < 2) {
+    // Start searching after 1 character
+    if (trimmedTerm.length < 1) {
       setSearchResults([]);
       setIsOpen(false);
       return;
     }
 
-    const term = searchTerm.toLowerCase().trim();
+    const term = trimmedTerm.toLowerCase();
     console.log('🔍 Searching for:', `"${term}"`);
     console.log('📋 Total deliveries to search:', allDeliveries.length);
+    
+    // Log all deliveries for debugging
+    console.log('📋 All deliveries:', allDeliveries.map(d => ({
+      id: d.id,
+      clientName: d.clientName,
+      invoiceNumber: d.invoiceNumber,
+      entryType: d.entryType
+    })));
     
     const filtered = allDeliveries.filter(delivery => {
       // Skip internal events and equipment maintenance for regular users
       if (delivery.entryType === 'internal' || delivery.entryType === 'equipmentMaintenance') {
+        console.log(`⏭️ Skipping ${delivery.entryType} entry:`, delivery.id);
         return false;
       }
       
-      // Search in client name (case-insensitive, partial match)
-      const clientName = delivery.clientName || '';
-      const clientMatch = clientName.toLowerCase().includes(term);
-      
-      // Search in invoice number (case-insensitive, partial match)
+      let clientMatch = false;
       let invoiceMatch = false;
-      if (delivery.invoiceNumber) {
-        try {
-          const invoiceStr = String(delivery.invoiceNumber).toLowerCase();
-          invoiceMatch = invoiceStr.includes(term);
-        } catch (error) {
-          console.warn('Error processing invoice number:', delivery.invoiceNumber, error);
-          invoiceMatch = false;
+      
+      // Search in client name
+      try {
+        const clientName = delivery.clientName || '';
+        if (typeof clientName === 'string' && clientName.length > 0) {
+          clientMatch = clientName.toLowerCase().includes(term);
+          console.log(`👤 Client "${clientName}" matches "${term}":`, clientMatch);
         }
+      } catch (error) {
+        console.warn('Error processing client name:', delivery.clientName, error);
+      }
+      
+      // Search in invoice number
+      try {
+        if (delivery.invoiceNumber != null && delivery.invoiceNumber !== '') {
+          // Convert to string safely
+          let invoiceStr = '';
+          if (typeof delivery.invoiceNumber === 'string') {
+            invoiceStr = delivery.invoiceNumber;
+          } else if (typeof delivery.invoiceNumber === 'number') {
+            invoiceStr = delivery.invoiceNumber.toString();
+          } else {
+            invoiceStr = String(delivery.invoiceNumber);
+          }
+          
+          invoiceMatch = invoiceStr.toLowerCase().includes(term);
+          console.log(`📄 Invoice "${invoiceStr}" matches "${term}":`, invoiceMatch);
+        }
+      } catch (error) {
+        console.warn('Error processing invoice number:', delivery.invoiceNumber, error);
       }
       
       const isMatch = clientMatch || invoiceMatch;
       
-      // Debug logging for troubleshooting
-      if (term.length >= 4) {
-        console.log(`🔍 Checking delivery ID ${delivery.id}:`, {
-          clientName: delivery.clientName,
-          invoiceNumber: delivery.invoiceNumber,
-          clientMatch,
-          invoiceMatch,
-          finalMatch: isMatch
-        });
-      }
+      console.log(`🔍 Delivery ${delivery.id} final match:`, isMatch, {
+        clientName: delivery.clientName,
+        invoiceNumber: delivery.invoiceNumber,
+        clientMatch,
+        invoiceMatch
+      });
       
-      return clientMatch || invoiceMatch;
+      return isMatch;
     });
     
     console.log(`✅ Search results: ${filtered.length} deliveries found`);
-    
-    // Log first few results for debugging
-    if (filtered.length > 0) {
-      console.log('📋 First few results:', filtered.slice(0, 3).map(d => ({
-        client: d.clientName,
-        invoice: d.invoiceNumber,
-        id: d.id
-      })));
-    }
+    console.log('📋 Found deliveries:', filtered.map(d => ({
+      id: d.id,
+      client: d.clientName,
+      invoice: d.invoiceNumber
+    })));
 
     // Sort results by date (most recent first) and limit to 50 results for performance
     const sortedResults = filtered
