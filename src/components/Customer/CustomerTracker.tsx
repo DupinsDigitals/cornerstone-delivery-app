@@ -272,47 +272,6 @@ export const CustomerTracker: React.FC = () => {
 
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-8">
-        {/* Search Form */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div>
-              <label htmlFor="invoice" className="block text-sm font-medium text-gray-700 mb-2">
-                Invoice Number
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  id="invoice"
-                  type="text"
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
-                  placeholder="Enter your invoice number (e.g., 12345)"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-            
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center text-lg font-medium"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Searching...
-                </>
-              ) : (
-                <>
-                  <Search className="w-5 h-5 mr-2" />
-                  Track Delivery
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
@@ -329,7 +288,7 @@ export const CustomerTracker: React.FC = () => {
             <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No delivery found</h3>
             <p className="text-gray-600">
-              Please check your invoice number and try again, or contact us if you need assistance.
+              The delivery information could not be found. Please contact us if you need assistance.
             </p>
           </div>
         )}
