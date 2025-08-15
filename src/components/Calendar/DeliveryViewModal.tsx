@@ -467,7 +467,22 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             <div>
               <span className="text-sm font-medium text-gray-700">Estimated Duration:</span>
               <p className="text-gray-900 mt-1">
-                {formatDuration(delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60)}
+                {(() => {
+                  // Calculate duration from scheduled start and end times
+                  if (delivery.scheduledTime && delivery.endTime) {
+                    const startTime = delivery.scheduledTime.split(':').map(Number);
+                    const endTime = delivery.endTime.split(':').map(Number);
+                    
+                    const startMinutes = startTime[0] * 60 + startTime[1];
+                    const endMinutes = endTime[0] * 60 + endTime[1];
+                    
+                    const durationMinutes = endMinutes - startMinutes;
+                    return formatDuration(durationMinutes > 0 ? durationMinutes : 60);
+                  }
+                  
+                  // Fallback to stored estimated time if no end time is set
+                  return formatDuration(delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60);
+                })()}
               </p>
             </div>
           </div>
