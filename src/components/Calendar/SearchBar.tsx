@@ -3,17 +3,26 @@ import { Search, Calendar, MapPin, Truck, X } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
 import { getDeliveriesFromFirestore } from '../../services/deliveryService';
 import { getTruckColor, getContrastTextColor } from '../../utils/truckTypes';
+import { DeliveryViewModal } from './DeliveryViewModal';
 
 interface SearchBarProps {
   onViewDelivery?: (delivery: Delivery) => void;
+  onEditDelivery?: (delivery: Delivery) => void;
+  onDeleteDelivery?: (deliveryId: string) => void;
   refreshTrigger: number;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTrigger }) => {
+export const SearchBar: React.FC<SearchBarProps> = ({ 
+  onViewDelivery, 
+  onEditDelivery,
+  onDeleteDelivery,
+  refreshTrigger 
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Delivery[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [allDeliveries, setAllDeliveries] = useState<Delivery[]>([]);
+  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -141,11 +150,24 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
   };
 
   const handleResultClick = (delivery: Delivery) => {
-    setIsOpen(false);
-    setSearchTerm('');
+    // Open modal immediately
+    setSelectedDelivery(delivery);
+    
+    // Also highlight in calendar and navigate if needed
     if (onViewDelivery) {
       onViewDelivery(delivery);
     }
+    
+    // Keep search open so user can see the highlight effect
+    // setIsOpen(false);
+    // setSearchTerm('');
+  };
+
+  const handleCloseModal = () => {
+    setSelectedDelivery(null);
+    // Now close search and clear term
+    setIsOpen(false);
+    setSearchTerm('');
   };
 
   const formatDate = (dateStr: string) => {
@@ -261,6 +283,16 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
             </div>
           )}
         </div>
+      )}
+
+      {/* Delivery View Modal */}
+      {selectedDelivery && (
+        <DeliveryViewModal
+          delivery={selectedDelivery}
+          onClose={handleCloseModal}
+          onEdit={onEditDelivery}
+          onDelete={onDeleteDelivery}
+        />
       )}
 
       {/* No Results Message */}

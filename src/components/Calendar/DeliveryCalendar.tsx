@@ -607,8 +607,9 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
   };
 
   const handleViewDelivery = (delivery: Delivery) => {
+    // Enhanced highlight with longer duration and more visual impact
     setHighlightedDelivery(delivery.id);
-    setTimeout(() => setHighlightedDelivery(null), 3000);
+    setTimeout(() => setHighlightedDelivery(null), 8000); // 8 seconds instead of 3
 
     const deliveryDate = new Date(delivery.scheduledDate + 'T00:00:00');
     const currentWeekStart = getWeekDates(currentWeek)[0];
@@ -626,7 +627,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
       const deliveryElement = document.getElementById(`delivery-${delivery.id}`);
       if (deliveryElement) {
         deliveryElement.scrollIntoView({ 
-          behavior: 'smooth', 
+          behavior: 'smooth',
           block: 'center' 
         });
       }
@@ -765,6 +766,8 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <SearchBar 
               onViewDelivery={handleViewDelivery}
+              onEditDelivery={onEditDelivery}
+              onDeleteDelivery={handleDeleteDelivery}
               refreshTrigger={refreshTrigger}
             />
             <button
