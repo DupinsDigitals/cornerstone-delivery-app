@@ -428,6 +428,7 @@ export const CustomerTracker: React.FC = () => {
                     )}
                   </div>
                 </div>
+            <div className="p-6 space-y-6">
 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h3>
@@ -480,6 +481,7 @@ export const CustomerTracker: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
 
               {/* Additional Notes */}
               {delivery.additionalNotes && (
