@@ -109,7 +109,13 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
   const canShowResumeButton = (isSeller || isMaster) && isOnHold && (!isComplete || isMaster);
 
   // Reset to Pending button: only masters can reset any delivery back to PENDING
-  const canShowResetButton = isMaster && delivery.status !== 'PENDING' && delivery.status !== 'Pending' && delivery.status !== 'pending';
+  const canShowResetButton = isMaster && 
+    delivery.status !== 'PENDING' && 
+    delivery.status !== 'Pending' && 
+    delivery.status !== 'pending' &&
+    delivery.status !== 'COMPLETE' && 
+    delivery.status !== 'Complete' && 
+    delivery.status !== 'complete';
 
   // Handle status updates for hold/resume functionality
   const handleStatusUpdate = async (newStatus: string, userInfo?: { editedBy: string; editedByName: string }) => {
