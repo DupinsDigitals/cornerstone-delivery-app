@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Calendar, MapPin, Truck, X } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
-import { getStoredDeliveries } from '../../utils/storage';
+import { getDeliveriesFromFirestore } from '../../services/deliveryService';
 import { getTruckColor, getContrastTextColor } from '../../utils/truckTypes';
 
 interface SearchBarProps {
@@ -17,16 +17,36 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load all deliveries when component mounts or refreshTrigger changes
+  // Load deliveries directly from Firestore
   useEffect(() => {
     const loadDeliveries = async () => {
-      const deliveriesData = await getStoredDeliveries();
-      setAllDeliveries(deliveriesData);
+      console.log('🔄 Loading deliveries from Firestore...');
+      try {
+        const result = await getDeliveriesFromFirestore();
+        if (result.success && result.deliveries) {
+          console.log('✅ Loaded deliveries:', result.deliveries.length);
+          setAllDeliveries(result.deliveries);
+          
+          // Debug: Show first few deliveries with their invoice numbers
+          console.log('📋 Sample deliveries:', result.deliveries.slice(0, 5).map(d => ({
+            id: d.id,
+            clientName: d.clientName,
+            invoiceNumber: d.invoiceNumber,
+            invoiceType: typeof d.invoiceNumber
+          })));
+        } else {
+          console.error('❌ Failed to load deliveries:', result.error);
+          setAllDeliveries([]);
+        }
+      } catch (error) {
+        console.error('❌ Error loading deliveries:', error);
+        setAllDeliveries([]);
+      }
     };
     loadDeliveries();
   }, [refreshTrigger]);
 
-  // Handle search functionality
+  // Enhanced search functionality
   useEffect(() => {
     const trimmedTerm = searchTerm.trim();
     
@@ -36,84 +56,61 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
       return;
     }
 
-    // Start searching after 1 character
-    if (trimmedTerm.length < 1) {
+    if (trimmedTerm.length < 2) {
       setSearchResults([]);
       setIsOpen(false);
       return;
     }
 
     const term = trimmedTerm.toLowerCase();
-    console.log('🔍 Searching for:', `"${term}"`);
-    console.log('📋 Total deliveries to search:', allDeliveries.length);
+    console.log('🔍 SEARCH STARTED for:', `"${term}"`);
+    console.log('📋 Total deliveries available:', allDeliveries.length);
     
-    // Log all deliveries for debugging
-    console.log('📋 All deliveries:', allDeliveries.map(d => ({
-      id: d.id,
-      clientName: d.clientName,
-      invoiceNumber: d.invoiceNumber,
-      entryType: d.entryType
-    })));
+    if (allDeliveries.length === 0) {
+      console.warn('⚠️ No deliveries loaded yet!');
+      setSearchResults([]);
+      setIsOpen(false);
+      return;
+    }
     
     const filtered = allDeliveries.filter(delivery => {
-      // Skip internal events and equipment maintenance for regular users
+      // Skip internal events and equipment maintenance
       if (delivery.entryType === 'internal' || delivery.entryType === 'equipmentMaintenance') {
-        console.log(`⏭️ Skipping ${delivery.entryType} entry:`, delivery.id);
         return false;
       }
       
-      let clientMatch = false;
-      let invoiceMatch = false;
+      // Safe string conversion and matching
+      const clientName = String(delivery.clientName || '').toLowerCase();
+      const invoiceNumber = String(delivery.invoiceNumber || '').toLowerCase();
       
-      // Search in client name
-      try {
-        const clientName = delivery.clientName || '';
-        if (typeof clientName === 'string' && clientName.length > 0) {
-          clientMatch = clientName.toLowerCase().includes(term);
-          console.log(`👤 Client "${clientName}" matches "${term}":`, clientMatch);
-        }
-      } catch (error) {
-        console.warn('Error processing client name:', delivery.clientName, error);
-      }
-      
-      // Search in invoice number
-      try {
-        if (delivery.invoiceNumber != null && delivery.invoiceNumber !== '') {
-          // Convert to string safely
-          let invoiceStr = '';
-          if (typeof delivery.invoiceNumber === 'string') {
-            invoiceStr = delivery.invoiceNumber;
-          } else if (typeof delivery.invoiceNumber === 'number') {
-            invoiceStr = delivery.invoiceNumber.toString();
-          } else {
-            invoiceStr = String(delivery.invoiceNumber);
-          }
-          
-          invoiceMatch = invoiceStr.toLowerCase().includes(term);
-          console.log(`📄 Invoice "${invoiceStr}" matches "${term}":`, invoiceMatch);
-        }
-      } catch (error) {
-        console.warn('Error processing invoice number:', delivery.invoiceNumber, error);
-      }
+      const clientMatch = clientName.includes(term);
+      const invoiceMatch = invoiceNumber.includes(term);
       
       const isMatch = clientMatch || invoiceMatch;
       
-      console.log(`🔍 Delivery ${delivery.id} final match:`, isMatch, {
-        clientName: delivery.clientName,
-        invoiceNumber: delivery.invoiceNumber,
-        clientMatch,
-        invoiceMatch
-      });
+      // Debug logging for matches
+      if (isMatch) {
+        console.log(`✅ MATCH FOUND:`, {
+          id: delivery.id,
+          clientName: delivery.clientName,
+          invoiceNumber: delivery.invoiceNumber,
+          clientMatch,
+          invoiceMatch
+        });
+      }
       
       return isMatch;
     });
     
-    console.log(`✅ Search results: ${filtered.length} deliveries found`);
-    console.log('📋 Found deliveries:', filtered.map(d => ({
-      id: d.id,
-      client: d.clientName,
-      invoice: d.invoiceNumber
-    })));
+    console.log(`🎯 SEARCH RESULTS: ${filtered.length} deliveries found`);
+    
+    if (filtered.length > 0) {
+      console.log('📋 Found deliveries:', filtered.map(d => ({
+        id: d.id,
+        client: d.clientName,
+        invoice: d.invoiceNumber
+      })));
+    }
 
     // Sort results by date (most recent first) and limit to 50 results for performance
     const sortedResults = filtered
