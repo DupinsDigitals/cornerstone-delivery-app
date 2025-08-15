@@ -242,48 +242,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                         )}
                       </div>
 
-                      {/* Material description */}
-                      <div className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-md">
-                        <Package className="w-4 h-4 inline mr-2 text-orange-500" />
-                        <span className="font-medium">Material:</span> {delivery.materialDescription}
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-100">
+                      {/* Action button */}
+                      <div className="flex items-center justify-center pt-3 border-t border-gray-100">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedDelivery(delivery);
                           }}
-                          className="flex items-center px-3 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors font-medium"
+                          className="flex items-center px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors font-medium shadow-sm"
                           title="View details"
                         >
                           <Eye className="w-3 h-3 mr-1" />
                           View
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditDelivery(delivery);
-                            setShowResults(false);
-                          }}
-                          className="flex items-center px-3 py-1 text-xs bg-green-100 text-green-700 hover:bg-green-200 rounded-md transition-colors font-medium"
-                          title="Edit delivery"
-                        >
-                          <Edit className="w-3 h-3 mr-1" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteDelivery(delivery.id);
-                            setShowResults(false);
-                          }}
-                          className="flex items-center px-3 py-1 text-xs bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition-colors font-medium"
-                          title="Delete delivery"
-                        >
-                          <Trash2 className="w-3 h-3 mr-1" />
-                          Delete
                         </button>
                       </div>
                     </div>
