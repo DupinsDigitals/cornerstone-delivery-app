@@ -176,7 +176,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
       {/* Search Results Dropdown */}
       {showResults && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-[9998] max-h-96 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-[9998] max-h-96 overflow-y-auto w-96 min-w-full">
           {isSearching ? (
             <div className="p-4 text-center text-gray-500">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
