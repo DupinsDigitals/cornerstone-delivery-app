@@ -34,47 +34,64 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onViewDelivery, refreshTri
       return;
     }
 
+    // Only start searching after 2 characters to avoid too many results
+    if (searchTerm.trim().length < 2) {
+      setSearchResults([]);
+      setIsOpen(false);
+      return;
+    }
+
     const term = searchTerm.toLowerCase().trim();
-    console.log('🔍 Searching for:', term);
+    console.log('🔍 Searching for:', `"${term}"`);
     console.log('📋 Total deliveries to search:', allDeliveries.length);
     
-    // Enhanced debugging - log each delivery's invoice number and type
-    console.log('📄 All deliveries with invoice numbers:');
-    allDeliveries.forEach((delivery, index) => {
-      console.log(`  ${index + 1}. Invoice: "${delivery.invoiceNumber}" (type: ${typeof delivery.invoiceNumber}) - Client: ${delivery.clientName}`);
-    });
-    
     const filtered = allDeliveries.filter(delivery => {
-      // Search in client name (partial match, case-insensitive)
-      const clientMatch = (delivery.clientName || '').toLowerCase().includes(term);
+      // Skip internal events and equipment maintenance for regular users
+      if (delivery.entryType === 'internal' || delivery.entryType === 'equipmentMaintenance') {
+        return false;
+      }
       
-      // Search in invoice number (exact or partial match, case-insensitive)
-      const invoiceNumber = delivery.invoiceNumber;
-      const invoiceStr = invoiceNumber ? invoiceNumber.toString().toLowerCase() : '';
-      const invoiceMatch = invoiceStr.includes(term);
+      // Search in client name (case-insensitive, partial match)
+      const clientName = delivery.clientName || '';
+      const clientMatch = clientName.toLowerCase().includes(term);
       
-      // Enhanced debug logging for specific searches
-      if (term === '164321' || term.startsWith('164')) {
-        console.log(`🔍 Checking delivery:`, {
-          client: delivery.clientName,
-          originalInvoice: delivery.invoiceNumber,
-          invoiceType: typeof delivery.invoiceNumber,
-          processedInvoice: invoiceStr,
-          searchTerm: term,
+      // Search in invoice number (case-insensitive, partial match)
+      let invoiceMatch = false;
+      if (delivery.invoiceNumber) {
+        try {
+          const invoiceStr = String(delivery.invoiceNumber).toLowerCase();
+          invoiceMatch = invoiceStr.includes(term);
+        } catch (error) {
+          console.warn('Error processing invoice number:', delivery.invoiceNumber, error);
+          invoiceMatch = false;
+        }
+      }
+      
+      const isMatch = clientMatch || invoiceMatch;
+      
+      // Debug logging for troubleshooting
+      if (term.length >= 4) {
+        console.log(`🔍 Checking delivery ID ${delivery.id}:`, {
+          clientName: delivery.clientName,
+          invoiceNumber: delivery.invoiceNumber,
           clientMatch,
           invoiceMatch,
-          overallMatch: clientMatch || invoiceMatch
+          finalMatch: isMatch
         });
       }
       
       return clientMatch || invoiceMatch;
     });
     
-    console.log('✅ Filtered results:', filtered.length);
+    console.log(`✅ Search results: ${filtered.length} deliveries found`);
+    
+    // Log first few results for debugging
     if (filtered.length > 0) {
-      console.log('📋 Found deliveries:', filtered.map(d => ({ client: d.clientName, invoice: d.invoiceNumber })));
-    } else {
-      console.log('❌ No deliveries found for search term:', term);
+      console.log('📋 First few results:', filtered.slice(0, 3).map(d => ({
+        client: d.clientName,
+        invoice: d.invoiceNumber,
+        id: d.id
+      })));
     }
 
     // Sort results by date (most recent first) and limit to 50 results for performance
