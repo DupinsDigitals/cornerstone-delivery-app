@@ -440,10 +440,38 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             <div>
               <span className="text-sm font-medium text-gray-700">Scheduled:</span>
               <p className="text-gray-900 mt-1">
-                {formatDate(delivery.scheduledDate)} at {formatTime(delivery.scheduledTime)}
+                {formatDate(delivery.scheduledDate)}
+              </p>
+              <div className="mt-1 space-y-1">
+                <p className="text-gray-900">
+                  <span className="font-medium">Start:</span> {formatTime(delivery.scheduledTime)}
+                </p>
+                {delivery.endTime && (
+                  <p className="text-gray-900">
+                    <span className="font-medium">End:</span> {formatTime(delivery.endTime)}
+                  </p>
+                )}
+                {delivery.startTime && delivery.endTime && (
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Actual Duration:</span> {formatDuration(getActualDuration(delivery))}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Estimated Duration - Only show for regular deliveries */}
+          {delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
+          <div className="flex items-start space-x-3">
+            <Clock className="w-4 h-4 text-gray-400" />
+            <div>
+              <span className="text-sm font-medium text-gray-700">Estimated Duration:</span>
+              <p className="text-gray-900 mt-1">
+                {formatDuration(delivery.estimatedTravelTime || delivery.estimatedTimeMinutes || 60)}
               </p>
             </div>
           </div>
+          )}
 
           {/* Delivery Photo */}
           {delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
