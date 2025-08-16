@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Package, Clock, MapPin, Phone, Truck, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
+import { Search, Package, Clock, MapPin, Phone, Truck, Calendar, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
 import { getDeliveriesFromFirestore } from '../../services/deliveryService';
 
@@ -18,6 +18,48 @@ export const CustomerTracker: React.FC = () => {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasAutoSearched, setHasAutoSearched] = useState(false);
+
+  // Check if delivery link has expired (7 days after completion)
+  const isDeliveryLinkExpired = (delivery: Delivery): boolean => {
+    // Only check expiration for completed deliveries
+    if (delivery.status !== 'COMPLETE' && delivery.status !== 'Complete') {
+      return false; // Not completed yet, so not expired
+    }
+    
+    // Find the completion date from edit history or use updatedAt as fallback
+    let completionDate: Date | null = null;
+    
+    if (delivery.editHistory && delivery.editHistory.length > 0) {
+      // Look for the most recent status change to COMPLETE
+      const completionEntry = delivery.editHistory
+        .filter(entry => 
+          entry.action === 'status_changed' && 
+          entry.changes && 
+          (entry.changes.includes('COMPLETE') || entry.changes.includes('Complete'))
+        )
+        .pop(); // Get the most recent one
+      
+      if (completionEntry) {
+        completionDate = new Date(completionEntry.editedAt);
+      }
+    }
+    
+    // Fallback to updatedAt if no completion entry found
+    if (!completionDate && delivery.updatedAt) {
+      completionDate = new Date(delivery.updatedAt);
+    }
+    
+    // If still no date, don't expire (safety fallback)
+    if (!completionDate) {
+      return false;
+    }
+    
+    // Calculate days since completion
+    const now = new Date();
+    const daysSinceCompletion = Math.floor((now.getTime() - completionDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    return daysSinceCompletion > 7;
+  };
 
   // Check for invoice parameter in URL and auto-search
   useEffect(() => {
@@ -251,6 +293,89 @@ export const CustomerTracker: React.FC = () => {
   const statusInfo = delivery ? getStatusInfo(delivery.status) : null;
   const StatusIcon = statusInfo?.icon || Clock;
 
+  // Component for expired delivery link
+  const ExpiredDeliveryMessage = () => (
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-orange-100 px-6 py-4 border-b">
+          <div className="flex items-center justify-center">
+            <XCircle className="w-8 h-8 text-orange-600 mr-3" />
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-orange-800">
+                TRACKING LINK EXPIRED
+              </h2>
+              <p className="text-sm text-orange-700 mt-1">
+                This delivery tracking link is no longer available
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="text-center">
+            <div className="text-6xl mb-4">📦</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">
+              Delivery Tracking No Longer Available
+            </h3>
+            <p className="text-gray-700 mb-4">
+              This tracking link expired 7 days after the delivery was completed. 
+              This is for security and privacy reasons.
+            </p>
+            <p className="text-gray-600 text-sm">
+              If you need information about this delivery, please contact us directly.
+            </p>
+          </div>
+
+          {/* Contact Information */}
+          <div className="border-t pt-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+              Need Help? Contact Us
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Framingham Store */}
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <h5 className="font-semibold text-blue-900 mb-2">Framingham Store</h5>
+                <div className="space-y-2">
+                  <a
+                    href="tel:+15088209700"
+                    className="flex items-center justify-center text-blue-700 hover:text-blue-900 font-medium"
+                  >
+                    <Phone className="w-4 h-4 mr-2" />
+                    (508) 820-9700
+                  </a>
+                </div>
+              </div>
+
+              {/* Marlborough Store */}
+              <div className="bg-green-50 p-4 rounded-lg text-center">
+                <h5 className="font-semibold text-green-900 mb-2">Marlborough Store</h5>
+                <div className="space-y-2">
+                  <a
+                    href="tel:+15084600088"
+                    className="flex items-center justify-center text-green-700 hover:text-green-900 font-medium"
+                  >
+                    <Phone className="w-4 h-4 mr-2" />
+                    (508) 460-0088
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Info */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600 text-center">
+              <strong>Why do links expire?</strong><br />
+              We automatically expire tracking links after 7 days of delivery completion 
+              to protect your privacy and maintain system security.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header */}
@@ -294,7 +419,7 @@ export const CustomerTracker: React.FC = () => {
         )}
 
         {/* Delivery Information */}
-        {delivery && statusInfo && (
+        {delivery && statusInfo && !isDeliveryLinkExpired(delivery) && (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Live Status Indicator */}
             <div className="bg-blue-600 text-white px-4 py-2 text-center text-sm">
@@ -569,6 +694,11 @@ export const CustomerTracker: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Show expired message if delivery link has expired */}
+        {delivery && isDeliveryLinkExpired(delivery) && (
+          <ExpiredDeliveryMessage />
         )}
       </div>
     </div>
