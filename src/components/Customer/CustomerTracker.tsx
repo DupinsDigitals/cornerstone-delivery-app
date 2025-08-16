@@ -397,6 +397,33 @@ export const CustomerTracker: React.FC = () => {
 
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-8">
+        {/* TEMPORARY TEST BUTTON - REMOVE AFTER TESTING */}
+        <div className="mb-4 text-center">
+          <button
+            onClick={() => {
+              // Create a fake expired delivery for testing
+              const fakeExpiredDelivery = {
+                id: 'test-expired',
+                clientName: 'Test Customer',
+                invoiceNumber: 'TEST123',
+                status: 'COMPLETE',
+                originStore: 'Framingham',
+                updatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
+                editHistory: [{
+                  action: 'status_changed',
+                  editedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+                  changes: 'Status changed to COMPLETE'
+                }]
+              };
+              setDelivery(fakeExpiredDelivery as any);
+              setHasSearched(true);
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm"
+          >
+            🧪 TEST: Ver Delivery Expirado
+          </button>
+        </div>
+
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
