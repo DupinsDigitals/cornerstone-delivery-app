@@ -741,9 +741,6 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
               {errors.endTime && (
                 <p className="mt-1 text-sm text-red-600">{errors.endTime}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                {formData.entryType === 'internal' ? 'Event end time' : 'Auto-calculated based on estimated time'}
-              </p>
             </div>
           )}
         </div>
