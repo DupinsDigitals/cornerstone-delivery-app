@@ -722,7 +722,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Clock className="w-4 h-4 inline mr-1" />
-                End Time
+                End Time *
               </label>
               <select
                 value={formData.endTime}
