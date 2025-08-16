@@ -231,6 +231,13 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
       newErrors.scheduledTime = 'Scheduled time is required';
     }
 
+    if (!formData.endTime) {
+      newErrors.endTime = 'End time is required';
+    }
+
+    if (!formData.additionalNotes.trim()) {
+      newErrors.additionalNotes = 'Additional notes are required';
+    }
     if (formData.entryType === 'regular' && formData.numberOfTrips < 1) {
       newErrors.numberOfTrips = 'Number of trips must be at least 1';
     }
@@ -720,7 +727,9 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
               <select
                 value={formData.endTime}
                 onChange={(e) => handleInputChange('endTime', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  errors.endTime ? 'border-red-500' : 'border-gray-300'
+                }`}
               >
                 <option value="">Select end time</option>
                 {TIME_SLOTS.map((slot) => (
@@ -729,6 +738,9 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
                   </option>
                 ))}
               </select>
+              {errors.endTime && (
+                <p className="mt-1 text-sm text-red-600">{errors.endTime}</p>
+              )}
               <p className="mt-1 text-xs text-gray-500">
                 {formData.entryType === 'internal' ? 'Event end time' : 'Auto-calculated based on estimated time'}
               </p>
@@ -799,19 +811,25 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             <FileText className="w-4 h-4 inline mr-1" />
             {formData.entryType === 'internal' ? 'Event Details' :
              formData.entryType === 'equipmentMaintenance' ? 'Maintenance Notes' :
-             'Additional Notes'}
+             'Additional Notes *'}
           </label>
           <textarea
             value={formData.additionalNotes}
             onChange={(e) => handleInputChange('additionalNotes', e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+              errors.additionalNotes ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder={
               formData.entryType === 'internal' ? 'Describe the internal event details' :
               formData.entryType === 'equipmentMaintenance' ? 'Describe the maintenance work needed' :
               'Any additional notes or special instructions'
             }
+            required
           />
+          {errors.additionalNotes && (
+            <p className="mt-1 text-sm text-red-600">{errors.additionalNotes}</p>
+          )}
         </div>
 
         {/* Form Actions */}
