@@ -210,10 +210,9 @@ export const deleteDeliveryFromFirestore = async (deliveryId: string): Promise<{
 export const getTodaysDeliveriesForStore = async (store: string, date: string): Promise<{ success: boolean; deliveries?: Delivery[]; error?: string }> => {
   try {
     const deliveriesRef = collection(db, DELIVERIES_COLLECTION);
-    // First filter by store and date, then sort client-side to avoid composite index requirement
+    // Filter by currentStore (or originStore as fallback) and date
     const q = query(
       deliveriesRef, 
-      where('originStore', '==', store),
       where('scheduledDate', '==', date)
     );
     const querySnapshot = await getDocs(q);
@@ -221,12 +220,17 @@ export const getTodaysDeliveriesForStore = async (store: string, date: string): 
     const deliveries: Delivery[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      deliveries.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
-        updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt,
-      } as Delivery);
+      
+      // Check if delivery is assigned to the requested store (currentStore takes precedence)
+      const assignedStore = data.currentStore || data.originStore;
+      if (assignedStore === store) {
+        deliveries.push({
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+          updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt,
+        } as Delivery);
+      }
     });
     
     // Sort by scheduledTime client-side
