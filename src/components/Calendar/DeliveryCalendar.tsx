@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Edit, Trash2, Clock, Truck, Calendar as CalendarIcon } from 'lucide-react';
-import { RefreshCw } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTruckColor, getContrastTextColor, isDarkBackground, getTextColorForBackground } from '../../utils/truckTypes';
 import { getStoredDeliveries, deleteDelivery } from '../../utils/storage';
-import { getDeliveriesFromFirestore, reassignDeliveryStore } from '../../services/deliveryService';
+import { getDeliveriesFromFirestore } from '../../services/deliveryService';
 import { SearchBar } from './SearchBar';
 import { DeliveryViewModal } from './DeliveryViewModal';
 import { canCreateDeliveries } from '../../services/authService';
@@ -43,7 +42,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [reassigningDelivery, setReassigningDelivery] = useState<string | null>(null);
 
   // Update current time every minute
   useEffect(() => {
@@ -616,44 +614,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
     window.location.reload();
   };
 
-  const handleStoreReassignment = async (delivery: Delivery, e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    const currentStore = delivery.currentStore || delivery.originStore;
-    const newStore = currentStore === 'Framingham' ? 'Marlborough' : 'Framingham';
-    
-    if (window.confirm(`Reatribuir delivery #${delivery.invoiceNumber} de ${currentStore} para ${newStore}?`)) {
-      setReassigningDelivery(delivery.id);
-      
-      try {
-        const result = await reassignDeliveryStore(delivery.id, newStore);
-        
-        if (result.success) {
-          // Update local state
-          setDeliveries(prevDeliveries => 
-            prevDeliveries.map(d => 
-              d.id === delivery.id 
-                ? { ...d, currentStore: newStore }
-                : d
-            )
-          );
-          
-          // Refresh from server
-          await refreshDeliveries();
-          
-          alert(`Delivery reatribuído para ${newStore} com sucesso!`);
-        } else {
-          alert(`Erro ao reatribuir delivery: ${result.error}`);
-        }
-      } catch (error) {
-        console.error('Error reassigning delivery:', error);
-        alert('Erro ao reatribuir delivery. Tente novamente.');
-      } finally {
-        setReassigningDelivery(null);
-      }
-    }
-  };
-
   const handleViewDelivery = (delivery: Delivery) => {
     // Enhanced highlight with much longer duration and more visual impact
     setHighlightedDelivery(delivery.id);
@@ -1069,24 +1029,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                               {/* Only show edit/delete buttons if delivery is not COMPLETE */}
                               {delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
                                 <>
-                              {/* Store Reassignment Button - MASTERS ONLY for regular deliveries */}
-                              {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
-                                <button
-                                  onClick={(e) => handleStoreReassignment(delivery, e)}
-                                  disabled={reassigningDelivery === delivery.id}
-                                  className="p-0.5 rounded transition-colors opacity-80 hover:opacity-100 flex-shrink-0"
-                                  style={{ 
-                                    backgroundColor: reassigningDelivery === delivery.id ? 'rgba(128, 128, 128, 0.3)' : 'rgba(147, 51, 234, 0.8)'
-                                  }}
-                                  title={`MASTER ONLY: Reatribuir para ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
-                                >
-                                  {reassigningDelivery === delivery.id ? (
-                                    <div className="w-2.5 h-2.5 border border-white border-t-transparent rounded-full animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="w-2.5 h-2.5 text-white" />
-                                  )}
-                                </button>
-                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1205,7 +1147,6 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
           onClose={handleCloseModal}
           onEdit={onEditDelivery}
           onDelete={handleDeleteDelivery}
-          onReassignStore={handleStoreReassignment}
         />
       )}
     </div>

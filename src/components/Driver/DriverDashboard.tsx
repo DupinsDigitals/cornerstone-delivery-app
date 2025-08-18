@@ -131,12 +131,8 @@ export const DriverDashboard: React.FC = () => {
     // For Master Driver, use selected store; for regular driver, use assigned store
     const storeToLoad = isMasterDriver ? selectedStore : user?.assignedStore;
     
-    const userStore = user?.assignedStore;
-    
     if (!storeToLoad) {
-      const userStore = user?.assignedStore;
-      const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
-      console.log('🔍 Loading deliveries for store:', userStore);
+      console.error('No store specified for loading deliveries');
       setIsLoading(false);
       return;
     }

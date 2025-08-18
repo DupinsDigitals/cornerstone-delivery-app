@@ -11,20 +11,18 @@ interface DeliveryViewModalProps {
   onClose: () => void;
   onEdit?: (delivery: Delivery) => void;
   onDelete?: (deliveryId: string) => void;
-  onReassignStore?: (delivery: Delivery, e: React.MouseEvent) => void;
 }
 
 export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({ 
   delivery, 
   onClose, 
   onEdit, 
-  onDelete,
-  onReassignStore
+  onDelete 
 }) => {
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = React.useState(false);
-  const [driverName, setDriverName] = React.useState<string>('');
   const [isReassigning, setIsReassigning] = React.useState(false);
+  const [driverName, setDriverName] = React.useState<string>('');
 
   // Load driver name when component mounts
   React.useEffect(() => {
@@ -96,7 +94,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
   
   // Check permissions based on user role and normalized store assignment
   const canEdit = user?.role === 'master';
-  const canReassignStore = user?.role === 'master'; // MASTERS ONLY
+  const canReassignStore = user?.role === 'master';
   const isDriver = user?.role === 'driver';
   
   // Role-based access control for hold/resume functionality
@@ -242,39 +240,6 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
     }
   };
 
-  // Handle store reassignment
-  const handleStoreReassignment = async () => {
-    const currentStore = delivery.currentStore || delivery.originStore;
-    const newStore = currentStore === 'Framingham' ? 'Marlborough' : 'Framingham';
-    
-    if (window.confirm(`Reassign delivery #${delivery.invoiceNumber} from ${currentStore} to ${newStore}?`)) {
-      setIsReassigning(true);
-      
-      try {
-        const result = await reassignDeliveryStore(
-          delivery.id, 
-          newStore, 
-          user?.email || user?.username || 'Unknown',
-          user?.name || user?.username || 'Unknown User',
-          'Store reassignment by administrator'
-        );
-        
-        if (result.success) {
-          alert(`Delivery successfully reassigned to ${newStore}!`);
-          // Close modal and refresh parent
-          onClose();
-          window.location.reload();
-        } else {
-          alert(`Error reassigning delivery: ${result.error}`);
-        }
-      } catch (error) {
-        console.error('Error reassigning delivery:', error);
-        alert('Error reassigning delivery. Please try again.');
-      } finally {
-        setIsReassigning(false);
-      }
-    }
-  };
   // Handle escape key to close modal
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -747,112 +712,115 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
 
         {/* Footer */}
         <div className="p-6 border-t bg-gray-50 rounded-b-lg">
-          <div className="flex flex-col gap-3">
-            {/* Top Row - Reassign and Reset to Pending */}
-            <div className="flex flex-wrap justify-between items-center gap-2">
-              {/* Store Reassignment Button (Master only) - Left side */}
-              {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
-                <button
-                  onClick={handleStoreReassignment}
-                  disabled={isReassigning || isUpdating}
-                  className="bg-purple-600 text-white px-3 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  title={`MASTER ONLY: Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
-                >
-                  {isReassigning ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      Reassigning...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Reassign to {(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}
-                    </>
-                  )}
-                </button>
-              )}
-              
-              {/* Reset to Pending Button - Right side */}
-              <div>
-                {canShowResetButton && (
-                  <button
-                    onClick={() => handleStatusUpdate('PENDING', {
-                      lastUpdatedBy: user?.email || user?.username || 'Unknown',
-                      lastUpdatedByName: user?.name || user?.username || 'Unknown User',
-                      editedBy: user?.email || user?.username || 'Unknown',
-                      editedByName: user?.name || user?.username || 'Unknown User',
-                      startedBy: null,
-                      assignedDriver: null,
-                      assignedTruck: null,
-                      claimedAt: null,
-                      currentTrip: null
-                    })}
-                    disabled={isUpdating}
-                    className="bg-gray-600 text-white px-3 py-2 rounded-md hover:bg-gray-700 transition-colors flex items-center disabled:opacity-50 text-sm"
-                    title="Reset delivery to PENDING status and clear driver assignment"
-                  >
-                    {isUpdating ? 'Updating...' : 'Reset to Pending'}
-                  </button>
+          <div className="flex justify-end space-x-3">
+            {/* Store Reassignment Button - Show to Masters only */}
+            {canReassignStore && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
+              <button
+                onClick={handleStoreReassignment}
+                disabled={isReassigning || isUpdating}
+                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                title={`Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
+              >
+                {isReassigning ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Reassigning...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Reassign to {(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}
+                  </>
                 )}
-              </div>
-            </div>
-            
-            {/* Bottom Row - Put On Hold, Edit, Cancel */}
-            <div className="flex justify-end gap-2">
-              {/* Put On Hold Button */}
-              {canShowHoldButton && (
-                <button
-                  onClick={() => handleStatusUpdate('On Hold', {
-                    lastUpdatedBy: user?.email || user?.username || 'Unknown',
-                    lastUpdatedByName: user?.name || user?.username || 'Unknown User',
-                    editedBy: user?.email || user?.username || 'Unknown',
-                    editedByName: user?.name || user?.username || 'Unknown User'
-                  })}
-                  disabled={isUpdating}
-                  className="bg-orange-500 text-white px-3 py-2 rounded-md hover:bg-orange-600 transition-colors flex items-center disabled:opacity-50 text-sm"
-                >
-                  {isUpdating ? 'Updating...' : 'Put On Hold'}
-                </button>
-              )}
-              
-              {/* Resume Button */}
-              {canShowResumeButton && (
-                <button
-                  onClick={() => handleStatusUpdate('Pending', {
-                    lastUpdatedBy: user?.email || user?.username || 'Unknown',
-                    lastUpdatedByName: user?.name || user?.username || 'Unknown User',
-                    editedBy: user?.email || user?.username || 'Unknown',
-                    editedByName: user?.name || user?.username || 'Unknown User'
-                  })}
-                  disabled={isUpdating}
-                  className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 text-sm"
-                >
-                  {isUpdating ? 'Updating...' : 'Resume'}
-                </button>
-              )}
-              
-              {/* Edit Button */}
-              {canEdit && onEdit && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
-                <button
-                  onClick={handleEdit}
-                  className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center text-sm"
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </button>
-              )}
+              </button>
+            )}
 
-              {/* Delete Button */}
-              {canEdit && onDelete && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
-                <button
-                  onClick={handleDelete}
-                  className="bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center text-sm"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Cancel
-                </button>
-              )}
-            </div>
+            {/* Put On Hold Button - Show to Sellers/Masters (except if Complete or already On Hold) */}
+            {canShowHoldButton && (
+              <button
+                onClick={() => handleStatusUpdate('On Hold', {
+                  lastUpdatedBy: user?.email || user?.username || 'Unknown',
+                  lastUpdatedByName: user?.name || user?.username || 'Unknown User',
+                  editedBy: user?.email || user?.username || 'Unknown',
+                  editedByName: user?.name || user?.username || 'Unknown User'
+                })}
+                disabled={isUpdating}
+                style={{
+                  backgroundColor: '#fd7e14',
+                  color: '#fff',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: isUpdating ? 'not-allowed' : 'pointer',
+                  opacity: isUpdating ? 0.6 : 1,
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                {isUpdating ? 'Updating...' : 'Put On Hold'}
+              </button>
+            )}
+            
+            {/* Resume Button - Show for on-hold deliveries */}
+            {canShowResumeButton && (
+              <button
+                onClick={() => handleStatusUpdate('Pending', {
+                  lastUpdatedBy: user?.email || user?.username || 'Unknown',
+                  lastUpdatedByName: user?.name || user?.username || 'Unknown User',
+                  editedBy: user?.email || user?.username || 'Unknown',
+                  editedByName: user?.name || user?.username || 'Unknown User'
+                })}
+                disabled={isUpdating}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
+              >
+                {isUpdating ? 'Updating...' : 'Resume'}
+              </button>
+            )}
+
+            {/* Reset to Pending Button - Show to Masters only */}
+            {canShowResetButton && (
+              <button
+                onClick={() => handleStatusUpdate('PENDING', {
+                  lastUpdatedBy: user?.email || user?.username || 'Unknown',
+                  lastUpdatedByName: user?.name || user?.username || 'Unknown User',
+                  editedBy: user?.email || user?.username || 'Unknown',
+                  editedByName: user?.name || user?.username || 'Unknown User',
+                  // Clear driver assignment when resetting to pending
+                  startedBy: null,
+                  assignedDriver: null,
+                  assignedTruck: null,
+                  claimedAt: null,
+                  currentTrip: null
+                })}
+                disabled={isUpdating}
+                className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors flex items-center"
+                title="Reset delivery to PENDING status and clear driver assignment"
+              >
+                {isUpdating ? 'Updating...' : 'Reset to Pending'}
+              </button>
+            )}
+
+            {/* Edit Button - Show to Masters */}
+            {canEdit && onEdit && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
+              <button
+                onClick={handleEdit}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </button>
+            )}
+
+            {/* Delete Button - Show to Masters */}
+            {canEdit && onDelete && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
+              <button
+                onClick={handleDelete}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Cancel
+              </button>
+            )}
           </div>
         </div>
       </div>
