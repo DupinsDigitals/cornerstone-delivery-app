@@ -822,5 +822,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             </div>
           </div>
         </div>
+      </div>
+    </div>
   );
 };
