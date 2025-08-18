@@ -1031,7 +1031,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                               {/* Only show edit/delete buttons if delivery is not COMPLETE */}
                               {delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
                                 <>
-                              {/* Store Reassignment Button - Show to Masters only for regular deliveries */}
+                              {/* Store Reassignment Button - MASTERS ONLY for regular deliveries */}
                               {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
                                 <button
                                   onClick={(e) => handleStoreReassignment(delivery, e)}
@@ -1040,7 +1040,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
                                   style={{ 
                                     backgroundColor: reassigningDelivery === delivery.id ? 'rgba(128, 128, 128, 0.3)' : 'rgba(147, 51, 234, 0.8)'
                                   }}
-                                  title={`Reatribuir para ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
+                                  title={`MASTER ONLY: Reatribuir para ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
                                 >
                                   {reassigningDelivery === delivery.id ? (
                                     <div className="w-2.5 h-2.5 border border-white border-t-transparent rounded-full animate-spin" />

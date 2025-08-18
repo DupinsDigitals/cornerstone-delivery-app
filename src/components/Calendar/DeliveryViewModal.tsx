@@ -94,7 +94,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
   
   // Check permissions based on user role and normalized store assignment
   const canEdit = user?.role === 'master';
-  const canReassignStore = user?.role === 'master';
+  const canReassignStore = user?.role === 'master'; // MASTERS ONLY
   const isDriver = user?.role === 'driver';
   
   // Role-based access control for hold/resume functionality
@@ -713,13 +713,13 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
         {/* Footer */}
         <div className="p-6 border-t bg-gray-50 rounded-b-lg">
           <div className="flex justify-end space-x-3">
-            {/* Store Reassignment Button - Show to Masters only */}
-            {canReassignStore && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
+            {/* Store Reassignment Button - MASTERS ONLY */}
+            {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
               <button
                 onClick={handleStoreReassignment}
                 disabled={isReassigning || isUpdating}
                 className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                title={`Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
+                title={`MASTER ONLY: Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
               >
                 {isReassigning ? (
                   <>
@@ -729,7 +729,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                 ) : (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Reassign to {(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}
+                    Reatribuir para {(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}
                   </>
                 )}
               </button>
