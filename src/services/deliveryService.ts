@@ -83,6 +83,9 @@ export const addDeliveryToFirestore = async (deliveryData: Partial<Delivery>): P
       status: cleanedData.status || 'PENDING',
       // Ensure webhook hasn't been sent yet
       scheduledWebhookSent: false,
+      // Set store fields for new deliveries
+      originalStore: cleanedData.originStore, // Store the original store
+      currentStore: cleanedData.originStore, // Initially same as original
       // Map field names for webhook compatibility
       customerName: cleanedData.clientName || cleanedData.customerName || null,
       customerPhone: cleanedData.clientPhone || cleanedData.customerPhone || cleanedData.phone || null,
@@ -175,6 +178,78 @@ export const updateDeliveryInFirestore = async (deliveryId: string, updateData: 
   }
 };
 
+// Reassign delivery to different store
+export const reassignDeliveryStore = async (
+  deliveryId: string, 
+  newStore: string, 
+  reassignedBy: string, 
+  reassignedByName: string,
+  reason?: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const deliveryRef = doc(db, DELIVERIES_COLLECTION, deliveryId);
+    const deliveryDoc = await getDoc(deliveryRef);
+    
+    if (!deliveryDoc.exists()) {
+      return { success: false, error: 'Delivery not found' };
+    }
+    
+    const currentData = deliveryDoc.data();
+    const currentStore = currentData.currentStore || currentData.originStore;
+    
+    // Don't reassign if it's already assigned to the target store
+    if (currentStore === newStore) {
+      return { success: false, error: 'Delivery is already assigned to this store' };
+    }
+    
+    // Create reassignment history entry
+    const reassignmentEntry = {
+      reassignedAt: new Date().toISOString(),
+      reassignedBy,
+      reassignedByName,
+      fromStore: currentStore,
+      toStore: newStore,
+      reason: reason || 'Store reassignment by administrator'
+    };
+    
+    // Create edit history entry
+    const editEntry = {
+      action: 'store_reassigned',
+      editedAt: new Date().toISOString(),
+      editedBy: reassignedBy,
+      editedByName: reassignedByName,
+      changes: `Store reassigned from ${currentStore} to ${newStore}`
+    };
+    
+    const updateData = {
+      currentStore: newStore,
+      originalStore: currentData.originalStore || currentData.originStore, // Set original store if not set
+      storeReassignmentHistory: currentData.storeReassignmentHistory 
+        ? [...currentData.storeReassignmentHistory, reassignmentEntry]
+        : [reassignmentEntry],
+      editHistory: currentData.editHistory 
+        ? [...currentData.editHistory, editEntry]
+        : [editEntry],
+      updatedAt: serverTimestamp(),
+      lastEditedAt: new Date().toISOString(),
+      lastEditedBy: reassignedBy,
+      lastEditedByName: reassignedByName
+    };
+    
+    await updateDoc(deliveryRef, updateData);
+    
+    console.log(`✅ Delivery ${deliveryId} reassigned from ${currentStore} to ${newStore} by ${reassignedByName}`);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error reassigning delivery store:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
+
 // Save delivery (create or update)
 export const saveDeliveryToFirestore = async (deliveryData: Partial<Delivery>): Promise<{ success: boolean; id?: string; error?: string }> => {
   if (deliveryData.id) {
@@ -210,7 +285,7 @@ export const getTodaysDeliveriesForStore = async (store: string, date: string): 
     // First filter by store and date, then sort client-side to avoid composite index requirement
     const q = query(
       deliveriesRef, 
-      where('originStore', '==', store),
+      where('currentStore', '==', store), // Use currentStore instead of originStore
       where('scheduledDate', '==', date)
     );
     const querySnapshot = await getDocs(q);

@@ -1,8 +1,8 @@
 import React from 'react';
-import { X, Clock, Truck, MapPin, FileText, Package, Phone, Calendar, Edit, Trash2, User } from 'lucide-react';
+import { X, Clock, Truck, MapPin, FileText, Package, Phone, Calendar, Edit, Trash2, User, RefreshCw } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
 import { useAuth } from '../../contexts/AuthContext';
-import { updateDeliveryStatus } from '../../services/deliveryService';
+import { updateDeliveryStatus, reassignDeliveryStore } from '../../services/deliveryService';
 import { getAllUsers } from '../../services/userService';
 import { getTruckColor, getContrastTextColor, isDarkBackground } from '../../utils/truckTypes';
 
@@ -21,6 +21,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
 }) => {
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = React.useState(false);
+  const [isReassigning, setIsReassigning] = React.useState(false);
   const [driverName, setDriverName] = React.useState<string>('');
 
   // Load driver name when component mounts
@@ -93,6 +94,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
   
   // Check permissions based on user role and normalized store assignment
   const canEdit = user?.role === 'master';
+  const canReassignStore = user?.role === 'master';
   const isDriver = user?.role === 'driver';
   
   // Role-based access control for hold/resume functionality

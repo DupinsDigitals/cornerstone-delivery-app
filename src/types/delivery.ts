@@ -64,4 +64,15 @@ export interface Delivery {
   tripStatus?: {
     [tripNumber: number]: 'pending' | 'in_progress' | 'completed';
   }; // Status of each individual trip
+  // Store reassignment fields
+  originalStore?: string; // Original store where delivery was created (never changes)
+  currentStore?: string; // Current store assigned for execution (can be reassigned)
+  storeReassignmentHistory?: {
+    reassignedAt: string;
+    reassignedBy: string;
+    reassignedByName: string;
+    fromStore: string;
+    toStore: string;
+    reason?: string;
+  }[]; // History of store reassignments
 }
