@@ -139,8 +139,7 @@ export const DriverDashboard: React.FC = () => {
 
     try {
       const todayDate = getTodayDate();
-      // Use currentStore for filtering driver deliveries
-      const result = await getTodaysDeliveriesForStore(userStore, today); // This already uses currentStore
+      const result = await getTodaysDeliveriesForStore(storeToLoad, todayDate);
       
       if (result.success && result.deliveries) {
         // Show all deliveries for the store - drivers can work with any truck

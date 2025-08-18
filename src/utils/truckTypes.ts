@@ -35,9 +35,7 @@ export const getContrastTextColor = (backgroundColor: string): string => {
 };
 
 export const getTruckColor = (originStore: string, truckType: string): string => {
-  // Handle both originStore and currentStore parameters
-  const store = originStore || 'Framingham'; // Default fallback
-  return TRUCK_COLORS[store as keyof typeof TRUCK_COLORS]?.[truckType] || '#6B7280';
+  return TRUCK_COLORS[originStore as keyof typeof TRUCK_COLORS]?.[truckType] || '#6B7280';
 };
 
 // Enhanced function to determine if background is dark and needs white text

@@ -1,8 +1,8 @@
 import React from 'react';
-import { X, Clock, Truck, MapPin, FileText, Package, Phone, Calendar, Edit, Trash2, User, RefreshCw } from 'lucide-react';
+import { X, Clock, Truck, MapPin, FileText, Package, Phone, Calendar, Edit, Trash2, User } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
 import { useAuth } from '../../contexts/AuthContext';
-import { updateDeliveryStatus, reassignDeliveryStore } from '../../services/deliveryService';
+import { updateDeliveryStatus } from '../../services/deliveryService';
 import { getAllUsers } from '../../services/userService';
 import { getTruckColor, getContrastTextColor, isDarkBackground } from '../../utils/truckTypes';
 
@@ -21,7 +21,6 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
 }) => {
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = React.useState(false);
-  const [isReassigning, setIsReassigning] = React.useState(false);
   const [driverName, setDriverName] = React.useState<string>('');
 
   // Load driver name when component mounts
@@ -94,7 +93,6 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
   
   // Check permissions based on user role and normalized store assignment
   const canEdit = user?.role === 'master';
-  const canReassignStore = user?.role === 'master';
   const isDriver = user?.role === 'driver';
   
   // Role-based access control for hold/resume functionality
@@ -713,28 +711,6 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
         {/* Footer */}
         <div className="p-6 border-t bg-gray-50 rounded-b-lg">
           <div className="flex justify-end space-x-3">
-            {/* Store Reassignment Button - Show to Masters only */}
-            {canReassignStore && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
-              <button
-                onClick={handleStoreReassignment}
-                disabled={isReassigning || isUpdating}
-                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                title={`Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
-              >
-                {isReassigning ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Reassigning...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Reassign to {(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}
-                  </>
-                )}
-              </button>
-            )}
-
             {/* Put On Hold Button - Show to Sellers/Masters (except if Complete or already On Hold) */}
             {canShowHoldButton && (
               <button

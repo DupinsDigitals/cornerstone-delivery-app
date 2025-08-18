@@ -391,15 +391,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
     
     const weekDeliveries = deliveries.filter(delivery => {
       const deliveryDate = new Date(delivery.scheduledDate + 'T00:00:00');
-      const isInWeek = deliveryDate >= weekStart && deliveryDate <= weekEnd;
-      
-      // For drivers, only show deliveries from their assigned store
-      if (user?.role === 'driver' && user.assignedStore) {
-        const deliveryStore = delivery.currentStore || delivery.originStore;
-        return isInWeek && deliveryStore === user.assignedStore;
-      }
-      
-      return isInWeek;
+      return deliveryDate >= weekStart && deliveryDate <= weekEnd;
     });
 
     const activeTrucks = new Set<string>();
@@ -412,7 +404,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
       } else if (delivery.entryType === 'equipmentMaintenance') {
         hasEquipmentMaintenance = true;
       } else {
-        const truckKey = `${delivery.currentStore || delivery.originStore}-${delivery.truckType}`;
+        const truckKey = `${delivery.originStore}-${delivery.truckType}`;
         activeTrucks.add(truckKey);
       }
     });
