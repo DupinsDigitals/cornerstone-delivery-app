@@ -221,7 +221,8 @@ export const getTodaysDeliveriesForStore = async (store: string, date: string): 
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       
-      // Check if delivery is assigned to the requested store (currentStore takes precedence)
+      // CRITICAL: Check if delivery is assigned to the requested store 
+      // currentStore takes precedence over originStore for driver visibility
       const assignedStore = data.currentStore || data.originStore;
       if (assignedStore === store) {
         deliveries.push({
