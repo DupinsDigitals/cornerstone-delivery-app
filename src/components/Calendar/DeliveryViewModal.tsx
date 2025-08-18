@@ -771,7 +771,12 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
         <div className="p-6 border-t bg-gray-50 rounded-b-lg">
           <div className="flex flex-wrap justify-end gap-3">
             {/* Store Reassignment Button - Show to Masters only */}
-            {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
+            {user?.role === 'master' && 
+             delivery.entryType !== 'internal' && 
+             delivery.entryType !== 'equipmentMaintenance' && 
+             delivery.status !== 'COMPLETE' && 
+             delivery.status !== 'Complete' && 
+             delivery.status !== 'complete' && (
               <button
                 onClick={handleStoreReassignment}
                 disabled={isReassigning || isUpdating}
