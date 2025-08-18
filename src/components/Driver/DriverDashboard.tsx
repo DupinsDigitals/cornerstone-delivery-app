@@ -131,6 +131,8 @@ export const DriverDashboard: React.FC = () => {
     // For Master Driver, use selected store; for regular driver, use assigned store
     const storeToLoad = isMasterDriver ? selectedStore : user?.assignedStore;
     
+    const userStore = user?.assignedStore;
+    
     if (!storeToLoad) {
       const userStore = user?.assignedStore;
       console.log('🔍 Loading deliveries for store:', userStore);
