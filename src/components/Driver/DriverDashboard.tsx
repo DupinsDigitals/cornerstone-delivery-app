@@ -59,6 +59,27 @@ export const DriverDashboard: React.FC = () => {
     return lastUpdatedByName || startedByUsername || 'UNKNOWN';
   };
 
+  // Filter deliveries based on user's assigned store and role
+  const getFilteredDeliveries = (deliveries: Delivery[]): Delivery[] => {
+    if (user?.role === 'masterDriver') {
+      // Master drivers can see all deliveries from both stores
+      return deliveries.filter(delivery => 
+        delivery.entryType !== 'internal' && 
+        delivery.entryType !== 'equipmentMaintenance'
+      );
+    } else if (user?.role === 'driver' && user?.assignedStore) {
+      // Regular drivers only see deliveries for their assigned store
+      // IMPORTANT: Uses currentStore (for reassigned deliveries) with originStore fallback
+      return deliveries.filter(delivery => {
+        const deliveryStore = delivery.currentStore || delivery.originStore;
+        return deliveryStore === user.assignedStore &&
+               delivery.entryType !== 'internal' && 
+               delivery.entryType !== 'equipmentMaintenance';
+      });
+    }
+    return [];
+  };
+
   // Status progression mapping
   const getNextStatus = (currentStatus: string): string => {
     const normalizedStatus = currentStatus.toLowerCase().trim();
