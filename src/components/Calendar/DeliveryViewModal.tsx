@@ -714,14 +714,15 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
 
         {/* Footer */}
         <div className="p-6 border-t bg-gray-50 rounded-b-lg">
-          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
-            {/* Left side - Store Reassignment (Master only) */}
-            <div className="flex justify-start">
+          <div className="flex flex-col gap-3">
+            {/* Top Row - All 3 buttons in same line */}
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              {/* Store Reassignment Button (Master only) */}
               {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
                 <button
                   onClick={(e) => onReassignStore?.(delivery, e)}
                   disabled={isReassigning || isUpdating}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-purple-600 text-white px-3 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   title={`MASTER ONLY: Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
                 >
                   {isReassigning ? (
@@ -737,11 +738,8 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                   )}
                 </button>
               )}
-            </div>
-
-            {/* Right side - Action buttons */}
-            <div className="flex flex-wrap justify-end gap-2">
-              {/* Status Control Buttons */}
+              
+              {/* Status Control Buttons - Right side of top row */}
               <div className="flex gap-2">
                 {/* Put On Hold Button */}
                 {canShowHoldButton && (
@@ -797,30 +795,31 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                   </button>
                 )}
               </div>
-              {/* Edit/Delete Buttons */}
-              <div className="flex gap-2">
-                {/* Edit Button */}
-                {canEdit && onEdit && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
-                  <button
-                    onClick={handleEdit}
-                    className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center text-sm"
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Edit
-                  </button>
-                )}
+            </div>
+            
+            {/* Bottom Row - Edit/Delete buttons */}
+            <div className="flex justify-end gap-2">
+              {/* Edit Button */}
+              {canEdit && onEdit && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
+                <button
+                  onClick={handleEdit}
+                  className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center text-sm"
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  Edit
+                </button>
+              )}
 
-                {/* Delete Button */}
-                {canEdit && onDelete && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
-                  <button
-                    onClick={handleDelete}
-                    className="bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center text-sm"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Cancel
-                  </button>
-                )}
-              </div>
+              {/* Delete Button */}
+              {canEdit && onDelete && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
+                <button
+                  onClick={handleDelete}
+                  className="bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center text-sm"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Cancel
+                </button>
+              )}
             </div>
           </div>
         </div>
