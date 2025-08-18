@@ -1167,6 +1167,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
           onClose={handleCloseModal}
           onEdit={onEditDelivery}
           onDelete={handleDeleteDelivery}
+          onReassignStore={handleStoreReassignment}
         />
       )}
     </div>

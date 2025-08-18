@@ -11,13 +11,15 @@ interface DeliveryViewModalProps {
   onClose: () => void;
   onEdit?: (delivery: Delivery) => void;
   onDelete?: (deliveryId: string) => void;
+  onReassignStore?: (delivery: Delivery, e: React.MouseEvent) => void;
 }
 
 export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({ 
   delivery, 
   onClose, 
   onEdit, 
-  onDelete 
+  onDelete,
+  onReassignStore
 }) => {
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = React.useState(false);
@@ -716,7 +718,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             {/* Store Reassignment Button - MASTERS ONLY */}
             {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
               <button
-                onClick={handleStoreReassignment}
+                onClick={(e) => onReassignStore?.(delivery, e)}
                 disabled={isReassigning || isUpdating}
                 className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 title={`MASTER ONLY: Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
