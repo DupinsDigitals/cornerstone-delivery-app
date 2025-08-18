@@ -430,26 +430,14 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
           <div className="flex items-start space-x-3">
             <Truck className="w-4 h-4 text-gray-400" />
             <div>
-              <span className="text-sm font-medium text-gray-700">Truck & Store Assignment:</span>
+              <span className="text-sm font-medium text-gray-700">Truck & Store:</span>
               <div className="flex items-center space-x-2 mt-1">
                 <div 
                   className="w-4 h-4 rounded border"
                   style={{ backgroundColor: backgroundColor }}
-                  title={`${delivery.currentStore || delivery.originStore} - ${delivery.truckType}`}
+                  title={`${delivery.originStore} - ${delivery.truckType}`}
                 />
-                <div>
-                  <p className="text-gray-900">{delivery.truckType}</p>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    {delivery.originalStore && delivery.currentStore && delivery.originalStore !== delivery.currentStore ? (
-                      <>
-                        <p><span className="font-medium">Origin:</span> {delivery.originalStore}</p>
-                        <p><span className="font-medium">Assigned to:</span> {delivery.currentStore}</p>
-                      </>
-                    ) : (
-                      <p><span className="font-medium">Store:</span> {delivery.currentStore || delivery.originStore}</p>
-                    )}
-                  </div>
-                </div>
+                <p className="text-gray-900">{delivery.truckType} ({delivery.originStore})</p>
               </div>
             </div>
           </div>
@@ -725,6 +713,28 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
         {/* Footer */}
         <div className="p-6 border-t bg-gray-50 rounded-b-lg">
           <div className="flex justify-end space-x-3">
+            {/* Store Reassignment Button - Show to Masters only */}
+            {canReassignStore && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
+              <button
+                onClick={handleStoreReassignment}
+                disabled={isReassigning || isUpdating}
+                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                title={`Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
+              >
+                {isReassigning ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Reassigning...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Reassign to {(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}
+                  </>
+                )}
+              </button>
+            )}
+
             {/* Put On Hold Button - Show to Sellers/Masters (except if Complete or already On Hold) */}
             {canShowHoldButton && (
               <button
