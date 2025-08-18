@@ -616,6 +616,44 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
     window.location.reload();
   };
 
+  const handleStoreReassignment = async (delivery: Delivery, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const currentStore = delivery.currentStore || delivery.originStore;
+    const newStore = currentStore === 'Framingham' ? 'Marlborough' : 'Framingham';
+    
+    if (window.confirm(`Reatribuir delivery #${delivery.invoiceNumber} de ${currentStore} para ${newStore}?`)) {
+      setReassigningDelivery(delivery.id);
+      
+      try {
+        const result = await reassignDeliveryStore(delivery.id, newStore);
+        
+        if (result.success) {
+          // Update local state
+          setDeliveries(prevDeliveries => 
+            prevDeliveries.map(d => 
+              d.id === delivery.id 
+                ? { ...d, currentStore: newStore }
+                : d
+            )
+          );
+          
+          // Refresh from server
+          await refreshDeliveries();
+          
+          alert(`Delivery reatribuído para ${newStore} com sucesso!`);
+        } else {
+          alert(`Erro ao reatribuir delivery: ${result.error}`);
+        }
+      } catch (error) {
+        console.error('Error reassigning delivery:', error);
+        alert('Erro ao reatribuir delivery. Tente novamente.');
+      } finally {
+        setReassigningDelivery(null);
+      }
+    }
+  };
+
   const handleViewDelivery = (delivery: Delivery) => {
     // Enhanced highlight with much longer duration and more visual impact
     setHighlightedDelivery(delivery.id);
