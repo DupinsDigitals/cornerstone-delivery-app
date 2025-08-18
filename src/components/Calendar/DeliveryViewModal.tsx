@@ -622,11 +622,11 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
           </div>
           )}
 
-          {/* Store Assignment Information */}
+          {/* Truck & Store Assignment */}
           <div className="flex items-start space-x-3">
-            <div className="w-4 h-4 text-gray-400 mt-0.5">🏪</div>
+            <Truck className="w-4 h-4 text-gray-400" />
             <div>
-              <div className="space-y-1">
+              <div>
                 <p className="text-sm font-medium text-gray-700">Truck & Store Assignment</p>
                 <p className="text-gray-900">{delivery.truckType}</p>
                 <div className="space-y-1 mt-1">
@@ -770,6 +770,28 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
         {/* Footer */}
         <div className="p-6 border-t bg-gray-50 rounded-b-lg">
           <div className="flex justify-end space-x-3">
+            {/* Store Reassignment Button - Show to Masters only */}
+            {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
+              <button
+                onClick={handleStoreReassignment}
+                disabled={isReassigning || isUpdating}
+                className="flex items-center px-4 py-2 text-sm bg-orange-600 text-white hover:bg-orange-700 rounded-md transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                title={`Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
+              >
+                {isReassigning ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Reassigning...
+                  </>
+                ) : (
+                  <>
+                    <Truck className="w-4 h-4 mr-2" />
+                    Reatribuir para {(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}
+                  </>
+                )}
+              </button>
+            )}
+            
             {/* Put On Hold Button - Show to Sellers/Masters (except if Complete or already On Hold) */}
             {canShowHoldButton && (
               <button
