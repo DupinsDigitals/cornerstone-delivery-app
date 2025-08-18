@@ -23,8 +23,8 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
 }) => {
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = React.useState(false);
-  const [isReassigning, setIsReassigning] = React.useState(false);
   const [driverName, setDriverName] = React.useState<string>('');
+  const [isReassigning, setIsReassigning] = React.useState(false);
 
   // Load driver name when component mounts
   React.useEffect(() => {
@@ -242,6 +242,39 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
     }
   };
 
+  // Handle store reassignment
+  const handleStoreReassignment = async () => {
+    const currentStore = delivery.currentStore || delivery.originStore;
+    const newStore = currentStore === 'Framingham' ? 'Marlborough' : 'Framingham';
+    
+    if (window.confirm(`Reassign delivery #${delivery.invoiceNumber} from ${currentStore} to ${newStore}?`)) {
+      setIsReassigning(true);
+      
+      try {
+        const result = await reassignDeliveryStore(
+          delivery.id, 
+          newStore, 
+          user?.email || user?.username || 'Unknown',
+          user?.name || user?.username || 'Unknown User',
+          'Store reassignment by administrator'
+        );
+        
+        if (result.success) {
+          alert(`Delivery successfully reassigned to ${newStore}!`);
+          // Close modal and refresh parent
+          onClose();
+          window.location.reload();
+        } else {
+          alert(`Error reassigning delivery: ${result.error}`);
+        }
+      } catch (error) {
+        console.error('Error reassigning delivery:', error);
+        alert('Error reassigning delivery. Please try again.');
+      } finally {
+        setIsReassigning(false);
+      }
+    }
+  };
   // Handle escape key to close modal
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -720,7 +753,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
               {/* Store Reassignment Button (Master only) - Left side */}
               {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
                 <button
-                  onClick={(e) => onReassignStore?.(delivery, e)}
+                  onClick={handleStoreReassignment}
                   disabled={isReassigning || isUpdating}
                   className="bg-purple-600 text-white px-3 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   title={`MASTER ONLY: Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
