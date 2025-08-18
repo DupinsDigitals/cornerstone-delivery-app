@@ -132,7 +132,8 @@ export const DriverDashboard: React.FC = () => {
     const storeToLoad = isMasterDriver ? selectedStore : user?.assignedStore;
     
     if (!storeToLoad) {
-      console.error('No store specified for loading deliveries');
+      const userStore = user?.assignedStore;
+      console.log('🔍 Loading deliveries for store:', userStore);
       setIsLoading(false);
       return;
     }
