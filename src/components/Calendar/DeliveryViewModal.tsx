@@ -786,12 +786,12 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                 {isReassigning ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Reatribuindo...
+                    Reassigning...
                   </>
                 ) : (
                   <>
                     <Truck className="w-4 h-4 mr-2" />
-                    Reatribuir para {(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}
+                    Reassign to {(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}
                   </>
                 )}
               </button>
