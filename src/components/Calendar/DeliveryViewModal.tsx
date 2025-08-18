@@ -769,19 +769,19 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
 
         {/* Footer */}
         <div className="p-6 border-t bg-gray-50 rounded-b-lg">
-          <div className="flex justify-end space-x-3">
+          <div className="flex flex-wrap justify-end gap-3">
             {/* Store Reassignment Button - Show to Masters only */}
             {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
               <button
                 onClick={handleStoreReassignment}
                 disabled={isReassigning || isUpdating}
-                className="flex items-center px-4 py-2 text-sm bg-orange-600 text-white hover:bg-orange-700 rounded-md transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center px-4 py-2 text-sm bg-orange-600 text-white hover:bg-orange-700 rounded-md transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
                 title={`Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
               >
                 {isReassigning ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Reassigning...
+                    Reatribuindo...
                   </>
                 ) : (
                   <>
@@ -802,19 +802,16 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                   editedByName: user?.name || user?.username || 'Unknown User'
                 })}
                 disabled={isUpdating}
-                style={{
-                  backgroundColor: '#fd7e14',
-                  color: '#fff',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  cursor: isUpdating ? 'not-allowed' : 'pointer',
-                  opacity: isUpdating ? 0.6 : 1,
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}
+                className="flex items-center justify-center px-4 py-2 text-sm bg-orange-500 text-white hover:bg-orange-600 rounded-md transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
               >
-                {isUpdating ? 'Updating...' : 'Put On Hold'}
+                {isUpdating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Atualizando...
+                  </>
+                ) : (
+                  'Put On Hold'
+                )}
               </button>
             )}
             
@@ -828,9 +825,16 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                   editedByName: user?.name || user?.username || 'Unknown User'
                 })}
                 disabled={isUpdating}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
+                className="flex items-center justify-center px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
               >
-                {isUpdating ? 'Updating...' : 'Resume'}
+                {isUpdating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Atualizando...
+                  </>
+                ) : (
+                  'Resume'
+                )}
               </button>
             )}
 
@@ -850,10 +854,17 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                   currentTrip: null
                 })}
                 disabled={isUpdating}
-                className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors flex items-center"
+                className="flex items-center justify-center px-4 py-2 text-sm bg-gray-600 text-white hover:bg-gray-700 rounded-md transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
                 title="Reset delivery to PENDING status and clear driver assignment"
               >
-                {isUpdating ? 'Updating...' : 'Reset to Pending'}
+                {isUpdating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Atualizando...
+                  </>
+                ) : (
+                  'Reset to Pending'
+                )}
               </button>
             )}
 
@@ -861,7 +872,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             {canEdit && onEdit && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
               <button
                 onClick={handleEdit}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
+                className="flex items-center justify-center px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors font-medium shadow-sm min-w-[120px]"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
@@ -872,7 +883,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
             {canEdit && onDelete && delivery.status !== 'COMPLETE' && delivery.status !== 'Complete' && delivery.status !== 'complete' && (
               <button
                 onClick={handleDelete}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center"
+                className="flex items-center justify-center px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors font-medium shadow-sm min-w-[120px]"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Cancel
