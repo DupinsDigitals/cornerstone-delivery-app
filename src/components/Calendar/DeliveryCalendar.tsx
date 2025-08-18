@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Edit, Trash2, Clock, Truck, Calendar as CalendarIcon } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTruckColor, getContrastTextColor, isDarkBackground, getTextColorForBackground } from '../../utils/truckTypes';
 import { getStoredDeliveries, deleteDelivery } from '../../utils/storage';
-import { getDeliveriesFromFirestore } from '../../services/deliveryService';
+import { getDeliveriesFromFirestore, reassignDeliveryStore } from '../../services/deliveryService';
 import { SearchBar } from './SearchBar';
 import { DeliveryViewModal } from './DeliveryViewModal';
 import { canCreateDeliveries } from '../../services/authService';
@@ -42,6 +43,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [reassigningDelivery, setReassigningDelivery] = useState<string | null>(null);
 
   // Update current time every minute
   useEffect(() => {
