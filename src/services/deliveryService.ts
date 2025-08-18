@@ -83,6 +83,9 @@ export const addDeliveryToFirestore = async (deliveryData: Partial<Delivery>): P
       status: cleanedData.status || 'PENDING',
       // Ensure webhook hasn't been sent yet
       scheduledWebhookSent: false,
+      // Set original and current store for new deliveries
+      originalStore: cleanedData.originStore,
+      currentStore: cleanedData.originStore, // Initially same as origin
       // Map field names for webhook compatibility
       customerName: cleanedData.clientName || cleanedData.customerName || null,
       customerPhone: cleanedData.clientPhone || cleanedData.customerPhone || cleanedData.phone || null,
@@ -348,6 +351,65 @@ export const uploadDeliveryPhotos = async (deliveryId: string, files: File[]): P
     return { success: true, photoUrls };
   } catch (error) {
     console.error('Error uploading delivery photos:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
+
+// Reassign delivery to different store
+export const reassignDeliveryStore = async (
+  deliveryId: string, 
+  newStore: string,
+  adminUser: { email?: string; name?: string }
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    // Get current delivery data
+    const deliveryRef = doc(db, DELIVERIES_COLLECTION, deliveryId);
+    const deliveryDoc = await getDoc(deliveryRef);
+    
+    if (!deliveryDoc.exists()) {
+      return { success: false, error: 'Delivery not found' };
+    }
+    
+    const currentData = deliveryDoc.data();
+    const previousStore = currentData.currentStore || currentData.originStore;
+    
+    // Don't reassign if it's already the same store
+    if (previousStore === newStore) {
+      return { success: false, error: 'Delivery is already assigned to this store' };
+    }
+    
+    // Create reassignment log entry
+    const reassignmentEntry = {
+      action: 'store_reassigned',
+      editedAt: new Date().toISOString(),
+      editedBy: adminUser.email || 'Unknown Admin',
+      editedByName: adminUser.name || 'Unknown Admin',
+      changes: `Store reassigned from ${previousStore} to ${newStore}`
+    };
+    
+    // Update delivery with new store assignment
+    const updateData = {
+      currentStore: newStore,
+      updatedAt: serverTimestamp(),
+      lastEditedBy: adminUser.email || 'Unknown Admin',
+      lastEditedByName: adminUser.name || 'Unknown Admin',
+      lastEditedAt: new Date().toISOString(),
+      // Set originalStore if not already set
+      ...((!currentData.originalStore) && { originalStore: currentData.originStore }),
+      // Add to edit history
+      editHistory: currentData.editHistory ? [...currentData.editHistory, reassignmentEntry] : [reassignmentEntry]
+    };
+    
+    await updateDoc(deliveryRef, updateData);
+    
+    console.log(`✅ Delivery ${deliveryId} reassigned from ${previousStore} to ${newStore}`);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error reassigning delivery store:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error occurred' 

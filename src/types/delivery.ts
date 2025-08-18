@@ -44,11 +44,13 @@ export interface Delivery {
   lastEditedBy?: string;
   lastEditedByName?: string;
   lastEditedAt?: string;
+  originalStore?: string; // Store where delivery was originally created
+  currentStore?: string; // Store currently assigned for execution
   editHistory?: {
     editedBy: string;
     editedByName?: string;
     editedAt: string;
-    action: 'created' | 'edited' | 'status_changed';
+    action: 'created' | 'edited' | 'status_changed' | 'store_reassigned';
     changes?: string;
   }[];
   // Repeat fields for internal events

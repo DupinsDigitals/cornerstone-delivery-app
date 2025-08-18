@@ -2,7 +2,7 @@ import React from 'react';
 import { X, Clock, Truck, MapPin, FileText, Package, Phone, Calendar, Edit, Trash2, User } from 'lucide-react';
 import { Delivery } from '../../types/delivery';
 import { useAuth } from '../../contexts/AuthContext';
-import { updateDeliveryStatus } from '../../services/deliveryService';
+import { updateDeliveryStatus, reassignDeliveryStore } from '../../services/deliveryService';
 import { getAllUsers } from '../../services/userService';
 import { getTruckColor, getContrastTextColor, isDarkBackground } from '../../utils/truckTypes';
 
@@ -22,6 +22,7 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [driverName, setDriverName] = React.useState<string>('');
+  const [isReassigning, setIsReassigning] = React.useState(false);
 
   // Load driver name when component mounts
   React.useEffect(() => {
@@ -77,6 +78,42 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
       return getTruckColor(delivery.originStore, delivery.truckType);
     } else {
       return getTruckColor(delivery.originStore, delivery.truckType);
+    }
+  };
+  
+  // Handle store reassignment (Master users only)
+  const handleStoreReassignment = async () => {
+    const currentStore = delivery.currentStore || delivery.originStore;
+    const newStore = currentStore === 'Framingham' ? 'Marlborough' : 'Framingham';
+    
+    const confirmMessage = `Are you sure you want to reassign this delivery from ${currentStore} to ${newStore}?\n\n` +
+      `Client: ${delivery.clientName}\n` +
+      `Invoice: #${delivery.invoiceNumber}\n` +
+      `This will move the delivery to ${newStore} store for execution.`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    
+    setIsReassigning(true);
+    try {
+      const result = await reassignDeliveryStore(delivery.id, newStore, {
+        email: user?.email || user?.username,
+        name: user?.name || user?.username
+      });
+      
+      if (result.success) {
+        // Close modal and refresh
+        onClose();
+        window.location.reload();
+      } else {
+        alert('Failed to reassign delivery: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error reassigning delivery:', error);
+      alert('An error occurred while reassigning the delivery');
+    } finally {
+      setIsReassigning(false);
     }
   };
   
@@ -571,8 +608,17 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                             </p>
                             <p className="text-xs text-blue-600 mt-2 italic">
                               Added by driver during delivery completion
+                        <p className="text-sm font-medium text-gray-700">Truck & Store Assignment</p>
+                        <p className="text-gray-900">{delivery.truckType}</p>
+                        <div className="space-y-1 mt-1">
+                          <p className="text-gray-600 text-sm">
+                            <span className="font-medium">Origin:</span> {delivery.originalStore || delivery.originStore} Store
+                          </p>
+                          {(delivery.currentStore && delivery.currentStore !== (delivery.originalStore || delivery.originStore)) && (
+                            <p className="text-blue-600 text-sm font-medium">
+                              <span className="font-medium">Executing:</span> {delivery.currentStore} Store
                             </p>
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -711,6 +757,28 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
         {/* Footer */}
         <div className="p-6 border-t bg-gray-50 rounded-b-lg">
           <div className="flex justify-end space-x-3">
+            {/* Store Reassignment Button - Show to Masters only */}
+            {user?.role === 'master' && delivery.entryType !== 'internal' && delivery.entryType !== 'equipmentMaintenance' && (
+              <button
+                onClick={handleStoreReassignment}
+                disabled={isReassigning || isUpdating}
+                className="flex items-center px-4 py-2 text-sm bg-orange-600 text-white hover:bg-orange-700 rounded-md transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                title={`Reassign to ${(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}`}
+              >
+                {isReassigning ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Reassigning...
+                  </>
+                ) : (
+                  <>
+                    <Truck className="w-4 h-4 mr-2" />
+                    Reatribuir para {(delivery.currentStore || delivery.originStore) === 'Framingham' ? 'Marlborough' : 'Framingham'}
+                  </>
+                )}
+              </button>
+            )}
+            
             {/* Put On Hold Button - Show to Sellers/Masters (except if Complete or already On Hold) */}
             {canShowHoldButton && (
               <button
