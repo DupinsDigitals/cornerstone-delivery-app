@@ -671,11 +671,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
         )}
 
         {/* Schedule Information */}
-        <div className={`grid grid-cols-1 ${
-          formData.entryType === 'regular' ? 'md:grid-cols-3' : 
-          formData.entryType === 'internal' ? 'md:grid-cols-3' : 
-          'md:grid-cols-2'
-        } gap-6`}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Calendar className="w-4 h-4 inline mr-1" />
@@ -718,7 +714,30 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             )}
           </div>
 
-          {(formData.entryType === 'regular' || formData.entryType === 'internal') && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Clock className="w-4 h-4 inline mr-1" />
+              End Time *
+            </label>
+            <select
+              value={formData.endTime}
+              onChange={(e) => handleInputChange('endTime', e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                errors.endTime ? 'border-red-500' : 'border-gray-300'
+              }`}
+            >
+              <option value="">Select end time</option>
+              {TIME_SLOTS.map((slot) => (
+                <option key={slot.value} value={slot.value}>
+                  {slot.label}
+                </option>
+              ))}
+            </select>
+            {errors.endTime && (
+              <p className="mt-1 text-sm text-red-600">{errors.endTime}</p>
+            )}
+          </div>
+        </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Clock className="w-4 h-4 inline mr-1" />
