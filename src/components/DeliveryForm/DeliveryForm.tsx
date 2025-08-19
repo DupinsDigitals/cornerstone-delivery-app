@@ -573,27 +573,6 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
           </div>
         )}
 
-        {/* Material Description - Only for Regular Deliveries */}
-        {formData.entryType === 'regular' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Package className="w-4 h-4 inline mr-1" />
-              Material Description *
-            </label>
-            <textarea
-              value={formData.materialDescription}
-              onChange={(e) => handleInputChange('materialDescription', e.target.value)}
-              rows={2}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                errors.materialDescription ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Describe the materials being delivered"
-            />
-            {errors.materialDescription && (
-              <p className="mt-1 text-sm text-red-600">{errors.materialDescription}</p>
-            )}
-          </div>
-        )}
 
         {/* Store and Truck Selection - Only for Regular Deliveries and Equipment Maintenance */}
         {formData.entryType !== 'internal' && (
@@ -639,20 +618,27 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {(TRUCK_TYPES[formData.originStore as keyof typeof TRUCK_TYPES] || []).map((truck) => {
-                    const bgColor = getTruckColor(truck);
-                    const textColor = getContrastTextColor(bgColor);
+                    const truckColor = getTruckColor(formData.originStore, truck);
+                    const textColor = getContrastTextColor(truckColor);
+                    const isSelected = formData.truckType === truck;
+                    const shortName = truck.replace(' (22 tons)', '').replace(' (10 tons)', '');
+                    
                     return (
-                      <div
+                      <button
                         key={truck}
-                        className="px-3 py-1 rounded-full text-sm font-medium border"
+                        type="button"
+                        onClick={() => handleInputChange('truckType', truck)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isSelected ? 'ring-2 ring-blue-400 ring-offset-1' : ''
+                        }`}
                         style={{
-                          backgroundColor: bgColor,
-                          color: textColor,
-                          borderColor: formData.truckType === truck ? '#374151' : 'transparent'
+                          backgroundColor: truckColor,
+                          color: textColor
                         }}
+                        title={truck}
                       >
-                        {truck}
-                      </div>
+                        {shortName}
+                      </button>
                     );
                   })}
                 </div>
@@ -661,7 +647,30 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
           </div>
         )}
 
-        {/* Scheduling Information */}
+
+        {/* Material Description */}
+        {formData.entryType === 'regular' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Package className="w-4 h-4 inline mr-1" />
+              Material Description *
+            </label>
+            <textarea
+              value={formData.materialDescription}
+              onChange={(e) => handleInputChange('materialDescription', e.target.value)}
+              rows={3}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                errors.materialDescription ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Describe the material to be delivered"
+            />
+            {errors.materialDescription && (
+              <p className="mt-1 text-sm text-red-600">{errors.materialDescription}</p>
+            )}
+          </div>
+        )}
+
+        {/* Schedule Information */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -672,7 +681,6 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
               type="date"
               value={formData.scheduledDate}
               onChange={(e) => handleInputChange('scheduledDate', e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
                 errors.scheduledDate ? 'border-red-500' : 'border-gray-300'
               }`}
@@ -694,7 +702,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
                 errors.scheduledTime ? 'border-red-500' : 'border-gray-300'
               }`}
             >
-              <option value="">Select time</option>
+              <option value="">Select start time</option>
               {TIME_SLOTS.map((slot) => (
                 <option key={slot.value} value={slot.value}>
                   {slot.label}
@@ -730,29 +738,31 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
             )}
           </div>
         </div>
-
-        {/* Estimated Travel Time - Only for Regular Deliveries */}
-        {formData.entryType === 'regular' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Clock className="w-4 h-4 inline mr-1" />
-              Estimated Travel Time: {formatDuration(formData.estimatedTravelTime)}
-            </label>
-            <input
-              type="range"
-              min="15"
-              max="240"
-              step="15"
-              value={formData.estimatedTravelTime}
-              onChange={(e) => handleInputChange('estimatedTravelTime', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>15 min</span>
-              <span>4 hours</span>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Clock className="w-4 h-4 inline mr-1" />
+                End Time *
+              </label>
+              <select
+                value={formData.endTime}
+                onChange={(e) => handleInputChange('endTime', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  errors.endTime ? 'border-red-500' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Select end time</option>
+                {TIME_SLOTS.map((slot) => (
+                  <option key={slot.value} value={slot.value}>
+                    {slot.label}
+                  </option>
+                ))}
+              </select>
+              {errors.endTime && (
+                <p className="mt-1 text-sm text-red-600">{errors.endTime}</p>
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Recurring Settings - Show for all entry types */}
         <div className="border-t pt-6">
