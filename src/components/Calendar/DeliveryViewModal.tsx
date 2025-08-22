@@ -462,7 +462,8 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
           )}
 
           {/* Truck Information */}
-          <div className="flex items-start space-x-3">
+          {delivery.entryType !== 'internal' && (
+            <div className="flex items-start space-x-3">
             <Truck className="w-4 h-4 text-gray-400" />
             <div>
               <span className="text-sm font-medium text-gray-700">Truck & Store:</span>
@@ -475,7 +476,8 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                 <p className="text-gray-900">{delivery.truckType} ({delivery.originStore})</p>
               </div>
             </div>
-          </div>
+            </div>
+          )}
 
           {/* Scheduled Date & Time */}
           <div className="flex items-start space-x-3">
@@ -622,8 +624,9 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
           </div>
           )}
 
-          {/* Truck & Store Assignment */}
-          <div className="flex items-start space-x-3">
+          {/* Truck & Store Assignment - Only show for regular deliveries and equipment maintenance */}
+          {delivery.entryType !== 'internal' && (
+            <div className="flex items-start space-x-3">
             <Truck className="w-4 h-4 text-gray-400" />
             <div>
               <div>
@@ -641,7 +644,8 @@ export const DeliveryViewModal: React.FC<DeliveryViewModalProps> = ({
                 </div>
               </div>
             </div>
-          </div>
+            </div>
+          )}
 
           <div className="border-t pt-4 mt-4">
             <h4 className="text-sm font-medium text-gray-700 mb-3">Creation & Edit History</h4>
