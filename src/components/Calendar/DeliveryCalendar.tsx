@@ -660,7 +660,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
               </button>
               
               {showMonthPicker && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 w-80">
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-[9999] w-80">
                   {/* Calendar Header */}
                   <div className="p-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
                     <button
@@ -790,7 +790,7 @@ export const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({
       {/* Click outside to close month picker */}
       {showMonthPicker && (
         <div 
-          className="fixed inset-0 z-40" 
+          className="fixed inset-0 z-[9998]" 
           onClick={() => setShowMonthPicker(false)}
         />
       )}
